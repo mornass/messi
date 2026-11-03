@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Lionel Messi</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- PRELOADER -->
+  <div class="preloader" data-preloader aria-hidden="true">
+    <div class="preloader-inner">
+      <div class="preloader-word">
+        <span class="preloader-letter"><span>L</span></span>
+        <span class="preloader-letter"><span>M</span></span>
+        <span class="preloader-letter"><span>1</span></span>
+        <span class="preloader-letter"><span>0</span></span>
+      </div>
+      <svg class="preloader-line" viewBox="0 0 500 16" fill="none" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="preloader-grenat" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#A50044" stop-opacity="0" />
+            <stop offset="0.25" stop-color="#A50044" />
+            <stop offset="0.75" stop-color="#A50044" />
+            <stop offset="1" stop-color="#A50044" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <path d="M4 11 C 130 4, 330 14, 496 6" stroke="url(#preloader-grenat)" stroke-width="2.5" stroke-linecap="round" />
+      </svg>
+      <div class="preloader-count eyebrow"><span data-preloader-count>0</span>&nbsp;%</div>
+    </div>
+  </div>
+
+  <main>
+    <h1 class="sr-only">Lionel Messi</h1>
+    <h2 class="sr-only">Numéro 10, FC Barcelone 2004 — 2021</h2>
+
+    <!-- =====================================================
+         HERO : piste de 200vh, bloc sticky de 100vh
+         ===================================================== -->
+    <div class="hero-track" data-hero-track>
+      <div class="hero-sticky">
+        <section class="hero" data-hero data-hero-animation-container>
+
+          <!-- Bandeaux qui défilent derrière la boîte (≈ "carousel" de l'original) -->
+          <div class="hero-marquee" aria-hidden="true">
+            <div class="hero-marquee-row is-top" data-marquee="left">
+              <span>La Pulga · La Pulga · La Pulga · </span>
+            </div>
+            <div class="hero-marquee-row is-bottom" data-marquee="right">
+              <span>672 buts · 778 matchs · 35 trophées avec le FC Barcelone · </span>
+            </div>
+          </div>
+
+          <!-- Canvas WebGL -->
+          <div class="hero-canvas" data-gl="hero"></div>
+
+          <!-- Au-dessus de la boîte : logo + "Message de Leo" -->
+          <div class="hero-msg">
+            <div class="hero-msg-logo" data-hero-anim="img" aria-hidden="true">
+              <span>10</span>
+            </div>
+            <div class="eyebrow-w">
+              <span class="sr-only">Message de Leo</span>
+              <div class="eyebrow" data-hero-anim="msg" data-split="chars" aria-hidden="true">Message de Leo</div>
+            </div>
+          </div>
+
+          <!-- Boîte cible du rétrécissement + tracé tactique dessiné au scroll -->
+          <div class="hero-box-w">
+            <div class="hero-box" data-hero-box>
+              <svg class="hero-tactic" viewBox="0 0 1000 714" fill="none" aria-hidden="true" data-hero-draw>
+                <!-- défenseurs -->
+                <path class="t-chalk t-x" d="M392 236 l28 28 M420 236 l-28 28" />
+                <path class="t-chalk t-x" d="M560 402 l28 28 M588 402 l-28 28" />
+                <path class="t-chalk t-x" d="M690 250 l28 28 M718 250 l-28 28" />
+                <!-- porteur du ballon -->
+                <circle class="t-chalk" cx="236" cy="470" r="34" />
+                <!-- course / dribble -->
+                <path class="t-run" d="M270 456 C 330 420, 340 330, 405 312 S 500 360, 520 410 S 600 500, 650 420 S 700 300, 760 300 S 840 340, 820 230" />
+                <!-- flèche finale -->
+                <path class="t-arrow" d="M790 252 L822 226 L832 266" />
+                <!-- but -->
+                <path class="t-chalk" d="M760 150 H880 V190" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Carte "Prochain match" (≈ "Next Race") -->
+          <aside class="match-card is-hidden" data-match-card>
+            <svg class="match-card-outline" viewBox="0 0 119 244" fill="none" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M118.5 6v232a5.5 5.5 0 0 1-5.5 5.5H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h48l14-14A17 17 0 0 1 80 .5h33a5.5 5.5 0 0 1 5.5 5.5Z" stroke="currentColor" vector-effect="non-scaling-stroke" />
+            </svg>
+
+            <div class="match-card-top">
+              <div class="eyebrow" data-anim-high><span class="line">Prochain match</span></div>
+            </div>
+
+            <a class="match-card-row is-1" href="#">
+              <svg class="match-pitch" viewBox="0 0 94 80" fill="none" aria-hidden="true" data-pitch>
+                <rect x="3" y="3" width="88" height="74" rx="2" />
+                <path d="M47 3 V77" />
+                <circle cx="47" cy="40" r="10" />
+                <path d="M3 24 H17 V56 H3" />
+                <path d="M91 24 H77 V56 H91" />
+                <circle class="match-pitch-ball" cx="47" cy="40" r="2" />
+              </svg>
+              <div class="match-card-eyebrows">
+                <div class="eyebrow" data-anim-high><span class="line">Inter Miami</span></div>
+                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line">MLS</span></div>
+              </div>
+            </a>
+
+            <div class="match-card-line"></div>
+
+            <div class="match-card-row is-2" data-gl-helmet="hover">
+              <svg class="match-crest" viewBox="0 0 40 46" fill="none" aria-hidden="true">
+                <path d="M3 4 H37 V22 C37 34 28 41 20 44 C12 41 3 34 3 22 Z" />
+                <path d="M11.5 4 V38 M20 4 V44 M28.5 4 V38" />
+              </svg>
+              <div class="eyebrow" data-anim-high>
+                <span class="line">FC Barcelone</span>
+                <span class="line">2004 — 2021</span>
+              </div>
+            </div>
+          </aside>
+
+        </section>
+      </div>
+
+      <!-- Repères de scroll (comme .hero-eyebrow-tracker / .hero-rive-tracker) -->
+      <div class="hero-eyebrow-tracker" data-hero-eyebrow-tracker></div>
+      <div class="hero-draw-tracker" data-hero-draw-tracker></div>
+    </div>
+
+    <!-- =====================================================
+         1. IMPACT — manifeste
+         ===================================================== -->
+    <section class="impact" data-impact>
+      <!-- marquages du terrain, tracés au scroll -->
+      <div class="impact-pitch" aria-hidden="true">
+        <span class="impact-pitch-line is-left" data-pitch-line></span>
+        <span class="impact-pitch-line is-right" data-pitch-line></span>
+        <svg class="impact-pitch-circle" viewBox="0 0 200 200" fill="none">
+          <circle data-pitch-circle cx="100" cy="100" r="98" transform="rotate(-90 100 100)" />
+          <circle data-pitch-spot class="impact-pitch-spot" cx="100" cy="100" r="2.2" />
+        </svg>
+      </div>
+
+      <div class="impact-inner">
+        <div class="impact-icon">
+          <svg class="impact-badge" viewBox="0 0 104 76" fill="none" aria-hidden="true" data-impact-icon>
+            <path d="M34 6 L44 2 C47 9 57 9 60 2 L70 6 L90 20 L81 33 L72 27 L72 73 L32 73 L32 27 L23 33 L14 20 Z" />
+            <path d="M44 2 C47 9 57 9 60 2" />
+            <text x="52" y="56" text-anchor="middle">10</text>
+          </svg>
+          <span class="sr-only">Numéro 10 depuis 2008</span>
+          <div class="eyebrow" data-anim-high="right, barca" aria-hidden="true">
+            <span class="line">Numéro 10 depuis 2008</span>
+          </div>
+        </div>
+
+        <p class="sr-only">Inventer des espaces, dribbler l'impossible, gagner partout. Écrire une légende du football, sur le terrain et au-delà.</p>
+        <p class="impact-text" data-anim-high="right, barca" data-split-lines aria-hidden="true"><strong>Inventer</strong> des espaces, dribbler l'impossible, gagner <strong>partout</strong>. Écrire une <strong>légende</strong> du football, sur le terrain et au-delà.</p>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         2. CLUBS — une section épinglée par club, défilement horizontal
+            (Newell's, Barça, PSG, Inter Miami, Argentine)
+            Panneaux : A. ouverture · B. galerie · C. immersion
+         ===================================================== -->
+    <div class="clubs" data-clubs>
+
+    <!-- Barre des clubs (≈ .nav-c / .link-s de l'original) : collée en haut pendant tout le bloc -->
+    <nav class="clubs-nav" data-clubs-nav aria-label="Clubs">
+      <div class="clubs-nav-inner">
+        <a class="clubs-link" href="#newells" data-club-link="newells"><span>Newell's Old Boys</span></a>
+        <a class="clubs-link" href="#barca" data-club-link="barca"><span>FC Barcelone</span></a>
+        <a class="clubs-link" href="#psg" data-club-link="psg"><span>PSG</span></a>
+        <a class="clubs-link" href="#miami" data-club-link="miami"><span>Inter Miami</span></a>
+        <a class="clubs-link" href="#argentine" data-club-link="argentine"><span>Argentine</span></a>
+      </div>
+    </nav>
+
+    <!-- Newell's Old Boys : à venir -->
+
+    <section class="club is-barca" id="barca" data-club="barca" data-nav-color="#F6F5F0"
+             data-jersey-src="assets/maillots/maillot-barca.png">
+      <h2 class="sr-only">FC Barcelone, 2004 — 2021</h2>
+
+      <div class="club-wrapper" data-club-wrapper>
+
+        <!-- A. OUVERTURE : nom tracé à la craie, maillot, numéro -->
+        <div class="club-panel club-open" data-club-open>
+          <div class="club-stripes" data-club-stripes aria-hidden="true"></div>
+
+          <svg class="club-pitch" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true" data-club-pitch>
+            <line x1="800" y1="0" x2="800" y2="900" />
+            <circle cx="800" cy="450" r="250" transform="rotate(-90 800 450)" />
+            <circle class="is-spot" cx="800" cy="450" r="5" />
+          </svg>
+
+          <div class="club-number" data-club-number aria-hidden="true">
+            <span>1</span><span>0</span>
+          </div>
+
+          <div class="club-name-w" aria-hidden="true">
+            <svg class="club-name" viewBox="0 0 1200 220" data-club-name>
+              <text x="600" y="172" text-anchor="middle">FC BARCELONE</text>
+            </svg>
+          </div>
+
+          <div class="club-corner is-br eyebrow" aria-hidden="true">
+            <span class="club-dot"></span>2004 — 2021 · Camp Nou
+          </div>
+        </div>
+
+        <!-- B. GALERIE : grand titre + 4 photos en parallaxe -->
+        <div class="club-panel club-gallery" data-club-gallery>
+          <div class="club-gallery-title">
+            <h3 class="club-big" data-club-htitle>La Masia</h3>
+          </div>
+
+          <div class="club-photos" data-club-photos>
+            <svg class="club-run" viewBox="0 0 1000 600" preserveAspectRatio="none" fill="none" aria-hidden="true" data-club-run>
+              <path d="M20 470 C 150 420, 210 160, 360 150 S 560 420, 660 430 S 860 220, 980 120" />
+              <path class="is-arrow" d="M952 112 L980 120 L966 146" />
+            </svg>
+
+            <div class="club-slot is-1">
+              <figure class="club-photo" data-club-photo>
+                <div class="club-photo-media ph"><span class="ph-label">Photo · Barça 2004</span></div>
+                <figcaption class="eyebrow"><b>16.10.2004</b> Premier match officiel, contre l'Espanyol</figcaption>
+              </figure>
+            </div>
+            <div class="club-slot is-1">
+              <figure class="club-photo" data-club-photo>
+                <div class="club-photo-media ph"><span class="ph-label">Photo · Barça 2005</span></div>
+                <figcaption class="eyebrow"><b>01.05.2005</b> Premier but, contre Albacete</figcaption>
+              </figure>
+            </div>
+            <div class="club-slot is-2">
+              <figure class="club-photo" data-club-photo>
+                <div class="club-photo-media ph"><span class="ph-label">Photo · Rome 2009</span></div>
+                <figcaption class="eyebrow"><b>27.05.2009</b> Finale à Rome, but de la tête</figcaption>
+              </figure>
+            </div>
+            <div class="club-slot is-2">
+              <figure class="club-photo" data-club-photo>
+                <div class="club-photo-media ph"><span class="ph-label">Photo · Wembley 2011</span></div>
+                <figcaption class="eyebrow"><b>28.05.2011</b> Wembley, but en finale contre Manchester United</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+
+        <!-- C. IMMERSION : image révélée plein écran + textes -->
+        <div class="club-panel club-immersion" data-club-immersion>
+          <div class="club-cover" data-club-cover>
+            <div class="club-cover-media ph">
+              <svg class="ph-pitch" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
+                <rect x="40" y="40" width="1520" height="820" />
+                <line x1="800" y1="40" x2="800" y2="860" />
+                <circle cx="800" cy="450" r="140" />
+                <rect x="40" y="230" width="250" height="440" />
+                <rect x="1310" y="230" width="250" height="440" />
+              </svg>
+              <span class="ph-label">Image plein écran · Barça</span>
+            </div>
+          </div>
+          <!-- cadre "surface de réparation" autour de l'image fermée -->
+          <svg class="club-cover-frame" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" aria-hidden="true" data-club-cover-frame>
+            <rect x="25" y="36" width="45" height="19" />
+            <path d="M40 55 Q47.5 61 55 55" />
+          </svg>
+
+          <div class="club-info1" data-club-info1>
+            <h3 class="club-big" data-club-vtitle>Une serviette</h3>
+            <div class="club-info1-bottom">
+              <p class="club-p">Le 14 décembre 2000, Carles Rexach engage Leo, 13 ans, sur une serviette en papier. Le club prend en charge son traitement de croissance : toute la famille quitte Rosario pour la Catalogne.</p>
+              <h3 class="club-big is-nowrap" data-club-vtitle>un destin</h3>
+            </div>
+          </div>
+
+          <div class="club-info2" data-club-info2>
+            <p class="club-p">Dix-sept saisons plus tard, il quitte le club en légende&nbsp;: 672&nbsp;buts, 778&nbsp;matchs, 35&nbsp;trophées, dont 4&nbsp;Ligues des champions et 10&nbsp;Liga.</p>
+            <div class="club-h2">
+              <span>Le meilleur buteur</span>
+              <span class="is-right">de l'histoire du club</span>
+            </div>
+            <div class="club-year is-left">2004</div>
+            <div class="club-year is-right">2021</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PSG, Inter Miami, Argentine : à venir (même structure) -->
+
+    </div><!-- /.clubs -->
+
+    <!-- Sections à venir -->
+    <section class="placeholder-next">
+      <span class="eyebrow">Sections à venir</span>
+    </section>
+  </main>
+
+  <!-- Fond WebGL global (fixe, derrière toutes les sections) -->
+  <div class="gl-background" data-gl="background" aria-hidden="true"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/preloader.js"></script>
+  <script src="js/hero.js"></script>
+  <script src="js/background.js"></script>
+  <script src="js/sections.js"></script>
+  <script src="js/jersey.js"></script>
+  <script src="js/clubs.js"></script>
+</body>
+</html>
