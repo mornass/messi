@@ -860,6 +860,18 @@ html.is-loading body { overflow: hidden; }
   height: 100%;
   object-fit: cover;
 }
+/* lecteur YouTube : agrandi pour couvrir le panneau (16:9), sans interaction */
+.club-cover-media > .media-yt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 177.78vh);
+  height: max(100%, 56.25vw);
+  border: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: media-in 1.2s ease both;
+}
 .club-cover-media.ph {
   background:
     radial-gradient(ellipse 55% 60% at 85% 85%, color-mix(in srgb, var(--c-second) 45%, transparent), transparent 70%),
