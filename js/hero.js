@@ -85,7 +85,9 @@
 
   // ---------- Lenis + ScrollTrigger ----------
   gsap.registerPlugin(ScrollTrigger);
-  const lenis = new Lenis({ lerp: 0.1 });
+  // « réduire les animations » : défilement natif (pas de lissage), pas de boucles décoratives
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lenis = new Lenis(reduceMotion ? { smoothWheel: false, syncTouch: false } : { lerp: 0.1 });
   window.lenis = lenis; // partagé (comme l'original : window.lenis)
   lenis.on("scroll", ScrollTrigger.update);
   // scroll bloqué tant que le preloader est affiché
@@ -182,6 +184,7 @@
     timeline: null,
 
     init() {
+      if (reduceMotion) return; // pas de curseur fantôme qui bouge tout seul
       this.initial = setTimeout(() => (this.isMoving = false), 2500);
       const tl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 3 });
       tl.fromTo(this.progress, { y: 0 }, { y: 1, duration: 2.5, ease: "none" }, 0);
@@ -197,6 +200,7 @@
       this.moveTimeout = setTimeout(() => (this.isMoving = false), 2000);
     },
     update() {
+      if (!this.timeline) return;
       if (!this.isMoving) {
         this.cursor.x = -Math.cos(this.progress.x * Math.PI * 4) * 0.75;
         this.cursor.y = Math.cos(this.progress.y * Math.PI) * 0.5;
@@ -1234,6 +1238,7 @@
     });
   }
   function updateMarquees() {
+    if (reduceMotion) return; // bandeaux figés
     // 1 unité de l'original ≈ hauteur écran / 6.9 (caméra fov 75 à z = 4.5)
     const unit = view.h / 6.9;
     const v = Math.abs(lenis.velocity || 0);
