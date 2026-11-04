@@ -92,17 +92,18 @@
             </div>
           </div>
 
-          <!-- Carte "Prochain match" (≈ "Next Race") -->
+          <!-- Carte "Club actuel" (≈ "Next Race" de l'original) : lien vers la section Miami,
+               survol de "Les débuts" → révélation de Leo jeune -->
           <aside class="match-card is-hidden" data-match-card>
             <svg class="match-card-outline" viewBox="0 0 119 244" fill="none" preserveAspectRatio="none" aria-hidden="true">
               <path d="M118.5 6v232a5.5 5.5 0 0 1-5.5 5.5H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h48l14-14A17 17 0 0 1 80 .5h33a5.5 5.5 0 0 1 5.5 5.5Z" stroke="currentColor" vector-effect="non-scaling-stroke" />
             </svg>
 
             <div class="match-card-top">
-              <div class="eyebrow" data-anim-high><span class="line">Prochain match</span></div>
+              <div class="eyebrow" data-anim-high><span class="line">Club actuel</span></div>
             </div>
 
-            <a class="match-card-row is-1" href="#">
+            <a class="match-card-row is-1" href="#miami" data-club-jump="miami" aria-label="Club actuel : Inter Miami, voir la section">
               <svg class="match-pitch" viewBox="0 0 94 80" fill="none" aria-hidden="true" data-pitch>
                 <rect x="3" y="3" width="88" height="74" rx="2" />
                 <path d="M47 3 V77" />
@@ -124,9 +125,12 @@
                 <path d="M3 4 H37 V22 C37 34 28 41 20 44 C12 41 3 34 3 22 Z" />
                 <path d="M11.5 4 V38 M20 4 V44 M28.5 4 V38" />
               </svg>
-              <div class="eyebrow" data-anim-high>
-                <span class="line">FC Barcelone</span>
-                <span class="line">2004 — 2021</span>
+              <div class="match-card-eyebrows">
+                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line">Les débuts</span></div>
+                <div class="eyebrow" data-anim-high>
+                  <span class="line">FC Barcelone</span>
+                  <span class="line">2004</span>
+                </div>
               </div>
             </div>
           </aside>
@@ -810,11 +814,45 @@
 
     </div><!-- /.clubs -->
 
-    <!-- Sections à venir -->
-    <section class="placeholder-next">
-      <span class="eyebrow">Sections à venir</span>
-    </section>
   </main>
+
+  <!-- =====================================================
+       FOOTER — palette du site (bleu marine, blanc cassé, grenat)
+       ===================================================== -->
+  <footer class="site-footer" data-footer>
+    <div class="footer-top">
+      <span class="eyebrow footer-reveal">Merci Leo</span>
+      <button class="footer-up eyebrow footer-reveal" type="button" data-footer-up>
+        Retour en haut <span aria-hidden="true">↑</span>
+      </button>
+    </div>
+
+    <p class="footer-word" data-footer-word aria-label="Leo Messi">Leo Messi</p>
+    <span class="footer-line" data-footer-line aria-hidden="true"></span>
+
+    <ul class="footer-stats">
+      <li class="footer-reveal"><b>8</b><span>Ballons d'Or</span></li>
+      <li class="footer-reveal"><b>1</b><span>Coupe du monde</span></li>
+      <li class="footer-reveal"><b>4</b><span>Ligues des champions</span></li>
+      <li class="footer-reveal"><b>2</b><span>Copa América</span></li>
+    </ul>
+
+    <div class="footer-bottom">
+      <nav class="footer-clubs" aria-label="Clubs">
+        <span class="eyebrow eyebrow--muted">Les clubs</span>
+        <a class="eyebrow" href="#newells" data-club-jump="newells">Newell's Old Boys</a>
+        <a class="eyebrow" href="#barca" data-club-jump="barca">FC Barcelone</a>
+        <a class="eyebrow" href="#psg" data-club-jump="psg">Paris Saint-Germain</a>
+        <a class="eyebrow" href="#miami" data-club-jump="miami">Inter Miami</a>
+        <a class="eyebrow" href="#argentine" data-club-jump="argentine">Argentine</a>
+      </nav>
+      <p class="footer-note">
+        Projet d'entraînement non officiel, sans lien avec Lionel Messi ni avec les clubs cités.
+        Inspirations&nbsp;: landonorris.com (hero) et ousmaneballondor.fr (clubs).
+        Maillots, logos et lettrages restent la propriété de leurs auteurs.
+      </p>
+    </div>
+  </footer>
 
   <!-- Fond WebGL global (fixe, derrière toutes les sections) -->
   <div class="gl-background" data-gl="background" aria-hidden="true"></div>

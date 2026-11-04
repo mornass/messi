@@ -340,21 +340,33 @@
       if (id && st.pin) pins.set(id, st);
     });
 
+    // défilement jusqu'au début d'un club (barre, carte du hero, footer…)
+    const jump = (id) => {
+      const st = pins.get(id);
+      if (!st) return false;
+      const y = st.start + 1; // juste après le début : le club est déjà épinglé
+      if (window.lenis) window.lenis.scrollTo(y, { duration: 1.5, easing: NAV_EASE });
+      else window.scrollTo({ top: y, behavior: "smooth" });
+      history.replaceState(null, "", `#${id}`);
+      return true;
+    };
+    window.scrollToClub = jump;
+
     links.forEach((a) => {
-      const id = a.dataset.clubLink;
-      if (!pins.has(id)) {
+      if (!pins.has(a.dataset.clubLink)) {
         a.classList.add("is-soon");
         a.setAttribute("aria-disabled", "true");
         a.tabIndex = -1;
       }
       a.addEventListener("click", (e) => {
         e.preventDefault();
-        const st = pins.get(id);
-        if (!st) return;
-        const y = st.start + 1; // juste après le début : le club est déjà épinglé
-        if (window.lenis) window.lenis.scrollTo(y, { duration: 1.5, easing: NAV_EASE });
-        else window.scrollTo({ top: y, behavior: "smooth" });
-        history.replaceState(null, "", `#${id}`);
+        jump(a.dataset.clubLink);
+      });
+    });
+    // tout autre lien vers un club, ailleurs dans la page : <a href="#miami" data-club-jump="miami">
+    document.querySelectorAll("[data-club-jump]").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        if (jump(a.dataset.clubJump)) e.preventDefault();
       });
     });
 
