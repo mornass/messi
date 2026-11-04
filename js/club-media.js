@@ -13,6 +13,8 @@
      data-media-poster = image de couverture pendant le chargement
      (data-media-poster-pos = son cadrage, ex. « 50% 70% ») ;
      data-media sert de repli
+   - data-media-pos="50% 15%" : cadrage de la photo (object-position), ex. photo
+     verticale dans un emplacement paysage
 
    API (utilisée par js/clubs.js) :
      const media = ClubMedia.attach(section)
@@ -29,6 +31,7 @@ window.ClubMedia = (() => {
       img.decoding = "async";
       img.alt = slot.closest("figure")?.querySelector("figcaption")?.textContent.trim() || "";
       img.onload = () => {
+        if (slot.dataset.mediaPos) img.style.objectPosition = slot.dataset.mediaPos; // cadrage
         slot.appendChild(img);
         resolve(img);
       };
