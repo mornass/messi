@@ -34,6 +34,31 @@
   const COVER_OPEN = "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)";
   const isMobile = () => window.innerWidth <= 991;
 
+  /* -------------------------------------------------------
+     PALETTES — une par club (couleurs officielles → teintes profondes)
+       base   : fond le plus sombre (bords, vignette)
+       deep   : couleur du club assombrie (cœur des dégradés)
+       accent : traits fins, soulignés
+       ink    : textes
+       glow   : halo de l'image plein écran
+     "site" = palette Barça du reste du site (avant le premier club).
+     ------------------------------------------------------- */
+  const PALETTES = {
+    site:      { base: "#0B1F3A", deep: "#0B1F3A", accent: "#A50044", ink: "#F6F5F0", glow: "#004D98" },
+    // rouge #D7001E · noir #111111
+    newells:   { base: "#0C0A0B", deep: "#6E0614", accent: "#D7001E", ink: "#F4F0EC", glow: "#8A0418" },
+    // bleu #004D98 · grenat #A50044
+    barca:     { base: "#061A36", deep: "#004D98", accent: "#A50044", ink: "#F6F5F0", glow: "#004D98" },
+    // à valider quand les sections existeront
+    psg:       { base: "#050F24", deep: "#0A1F44", accent: "#DA291C", ink: "#F4F3F0", glow: "#1A3A73" },
+    miami:     { base: "#0E0C0D", deep: "#5E3243", accent: "#F5B6CD", ink: "#F7EFF2", glow: "#7A4358" },
+    argentine: { base: "#0D2238", deep: "#3F6F9C", accent: "#75AADB", ink: "#FFFFFF", glow: "#75AADB" },
+  };
+  const THEME_KEYS = ["base", "deep", "accent", "ink", "glow"];
+  const DIP_KEYS = ["deep", "glow"];   // teintes qui "plongent" dans le noir pendant la transition
+  const THEME_DIP = "#08080A";
+  const THEME_LAG = 0.8;                // lissage de la transition (s)
+
   let jerseyOwner = null;              // club qui contrôle le canvas du maillot
 
   const maxX = (wrapper) => Math.max(0, wrapper.scrollWidth - window.innerWidth);
@@ -323,8 +348,6 @@
     const setActive = (id) => {
       current = id;
       links.forEach((a) => a.classList.toggle("is-active", a.dataset.clubLink === id));
-      const section = id && block.querySelector(`[data-club="${id}"]`);
-      gsap.to(nav, { color: section?.dataset.navColor || "#F6F5F0", duration: 0.35, ease: "power2.out", overwrite: "auto" });
     };
 
     // club actif = celui dont la piste (épinglage) contient le scroll
@@ -352,9 +375,73 @@
     });
   }
 
+  /* -------------------------------------------------------
+     THÈME DU BLOC — les couleurs suivent le club affiché.
+     Position continue t : 0 = palette du site, 1 = 1er club, 2 = 2e club…
+     Chaque club "arrive" pendant que son haut monte du bas au haut de l'écran
+     (au moment où le club précédent sort) : t avance de 0 à 1 sur ce trajet.
+     t est lissé par GSAP, puis les 5 couleurs sont interpolées et posées en
+     variables CSS sur le bloc (tout le reste en dérive en CSS).
+     ------------------------------------------------------- */
+  function initTheme(block) {
+    const sections = Array.from(block.querySelectorAll("[data-club]"));
+    if (!sections.length) return;
+    const stops = [PALETTES.site, ...sections.map((s) => PALETTES[s.dataset.club] || PALETTES.site)];
+    const state = { t: 0 };
+    let lastKey = "";
+
+    const apply = () => {
+      const i = Math.max(0, Math.min(stops.length - 2, Math.floor(state.t)));
+      const f = gsap.utils.clamp(0, 1, state.t - i);
+      const key = i + ":" + f.toFixed(4);
+      if (key === lastKey) return;
+      lastKey = key;
+      const a = stops[i], b = stops[i + 1];
+      THEME_KEYS.forEach((k) => {
+        let c;
+        if (DIP_KEYS.includes(k)) {
+          // les couleurs de club passent par le noir à mi-chemin (pas de violet boueux entre rouge et bleu)
+          c = f < 0.5
+            ? gsap.utils.interpolate(a[k], THEME_DIP, f * 2)
+            : gsap.utils.interpolate(THEME_DIP, b[k], (f - 0.5) * 2);
+        } else {
+          c = gsap.utils.interpolate(a[k], b[k], f);
+        }
+        block.style.setProperty(`--c-${k}`, c);
+      });
+    };
+
+    const target = () => {
+      const vh = window.innerHeight;
+      return sections.reduce((t, s) => t + gsap.utils.clamp(0, 1, (vh - s.getBoundingClientRect().top) / vh), 0);
+    };
+
+    let first = true;
+    const update = () => {
+      const t = target();
+      if (first) {
+        first = false;
+        state.t = t;
+        apply();
+        return;
+      }
+      gsap.to(state, { t, duration: THEME_LAG, ease: "power3.out", overwrite: true, onUpdate: apply });
+    };
+
+    ScrollTrigger.create({
+      trigger: block,
+      start: "top bottom",
+      end: "bottom top",
+      onUpdate: update,
+      onRefresh: update,
+    });
+    update();
+  }
+
   const start = () => {
     document.querySelectorAll("[data-club]").forEach(initClub);
     document.querySelectorAll("[data-clubs]").forEach(initNav);
+    document.querySelectorAll("[data-clubs]").forEach(initTheme);
     ScrollTrigger.refresh();
   };
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(start);

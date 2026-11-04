@@ -437,8 +437,18 @@ html.is-loading body { overflow: hidden; }
 /* =========================================================
    2. CLUBS — section épinglée, défilement horizontal
    ========================================================= */
-/* bloc des clubs : "nouvelle page", barre des clubs collée en haut */
+/* bloc des clubs : "nouvelle page", barre des clubs collée en haut.
+   Thème : chaque club a sa palette. js/clubs.js fait glisser ces 5 couleurs
+   d'un club à l'autre au scroll ; tout le reste en est dérivé (color-mix). */
 .clubs {
+  --c-base: var(--navy);       /* fond le plus profond (bords, vignette) */
+  --c-deep: var(--navy);       /* couleur du club, assombrie (cœur des dégradés) */
+  --c-accent: var(--grenat);   /* traits fins, soulignés, points */
+  --c-ink: var(--offwhite);    /* textes et craie */
+  --c-glow: var(--barca);      /* halo de l'image plein écran */
+
+  --c-mid: color-mix(in srgb, var(--c-deep) 55%, var(--c-base));
+  --chalk: color-mix(in srgb, var(--c-ink) 38%, transparent);
   position: relative;
   z-index: 2;
 }
@@ -447,7 +457,7 @@ html.is-loading body { overflow: hidden; }
   top: 0;
   z-index: 30;
   height: 0;            /* ne prend pas de place : se superpose aux sections */
-  color: var(--offwhite);
+  color: var(--c-ink);
 }
 .clubs-nav-inner {
   position: absolute;
@@ -483,7 +493,7 @@ html.is-loading body { overflow: hidden; }
   right: 0;
   bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, var(--grenat), color-mix(in srgb, var(--grenat) 30%, transparent));
+  background: linear-gradient(90deg, var(--c-accent), color-mix(in srgb, var(--c-accent) 30%, transparent));
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1);
@@ -494,25 +504,32 @@ html.is-loading body { overflow: hidden; }
 .clubs-link.is-soon { opacity: 0.28; pointer-events: none; }
 
 .club {
-  --club-bg: var(--navy);
-  --club-stripe-a: color-mix(in srgb, var(--club-bg) 95%, var(--offwhite));
-  --club-stripe-b: color-mix(in srgb, var(--club-bg) 86%, var(--navy));
-  --chalk: color-mix(in srgb, var(--offwhite) 38%, transparent);
-  --club-glow: var(--barca);   /* halo de l'image plein écran (placeholder) */
   position: relative;
   z-index: 1;
   height: 100vh;
   overflow: hidden;
-  color: var(--offwhite);
-  background: var(--navy);
+  color: var(--c-ink);
+  background: var(--c-base);
 }
-.club.is-barca { --club-bg: var(--barca); }
-/* Newell's (rouge et noir) : marine profond, bandes à peine teintées de grenat */
-.club.is-newells {
-  --club-bg: color-mix(in srgb, var(--navy) 88%, black);
-  --club-stripe-a: color-mix(in srgb, var(--club-bg) 94%, var(--offwhite));
-  --club-stripe-b: color-mix(in srgb, var(--club-bg) 90%, var(--grenat));
-  --club-glow: color-mix(in srgb, var(--grenat) 30%, var(--navy));
+/* grain argentique, fixe pendant le défilement horizontal */
+.club::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.075;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.2 -.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+/* vignette douce sur les bords */
+.club::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(ellipse 120% 95% at 50% 50%, transparent 55%, color-mix(in srgb, var(--c-base) 70%, transparent) 100%);
 }
 
 .club-wrapper {
@@ -533,7 +550,7 @@ html.is-loading body { overflow: hidden; }
 /* ---------- A. Ouverture ---------- */
 .club-open {
   width: 100vw;
-  background: var(--club-bg);
+  background: radial-gradient(ellipse 75% 85% at 50% 48%, var(--c-deep) 0%, var(--c-mid) 42%, var(--c-base) 100%);
   overflow: hidden;
 }
 /* bandes de tonte (≈ vidéo qui s'ouvre depuis le centre dans l'original) */
@@ -544,8 +561,8 @@ html.is-loading body { overflow: hidden; }
   margin: 0 auto;
   background: repeating-linear-gradient(
     90deg,
-    var(--club-stripe-a) 0 6.25vw,
-    var(--club-stripe-b) 6.25vw 12.5vw
+    color-mix(in srgb, var(--c-ink) 3%, transparent) 0 6.25vw,
+    color-mix(in srgb, var(--c-base) 28%, transparent) 6.25vw 12.5vw
   );
 }
 .club-pitch {
@@ -570,7 +587,7 @@ html.is-loading body { overflow: hidden; }
   font-size: 22rem;
   line-height: 0.8;
   color: transparent;
-  -webkit-text-stroke: 2px color-mix(in srgb, var(--offwhite) 75%, transparent);
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--c-ink) 75%, transparent);
   pointer-events: none;
 }
 .club-number span { display: block; }
@@ -590,8 +607,8 @@ html.is-loading body { overflow: hidden; }
   font-style: italic;
   font-stretch: 75%;
   font-size: 180px;
-  fill: var(--offwhite);
-  stroke: var(--offwhite);
+  fill: var(--c-ink);
+  stroke: var(--c-ink);
   stroke-width: 2;
   stroke-linejoin: round;
 }
@@ -602,15 +619,15 @@ html.is-loading body { overflow: hidden; }
   display: flex;
   align-items: center;
   gap: 0.6em;
-  color: color-mix(in srgb, var(--offwhite) 80%, transparent);
+  color: color-mix(in srgb, var(--c-ink) 80%, transparent);
 }
 .club-corner.is-br { bottom: var(--gap); right: var(--gap); }
 .club-dot {
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
-  border: 1px solid var(--grenat);
-  background: color-mix(in srgb, var(--grenat) 55%, transparent);
+  border: 1px solid var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 55%, transparent);
 }
 
 /* ---------- B. Galerie ---------- */
@@ -618,7 +635,7 @@ html.is-loading body { overflow: hidden; }
   width: 150vw;
   padding-left: 5rem;
   justify-content: flex-start;
-  background: var(--club-bg);
+  background: linear-gradient(90deg, var(--c-base) 0%, var(--c-mid) 30%, color-mix(in srgb, var(--c-deep) 70%, var(--c-base)) 50%, var(--c-mid) 70%, var(--c-base) 100%);
 }
 .club-gallery-title {
   position: absolute;
@@ -679,17 +696,17 @@ html.is-loading body { overflow: hidden; }
   align-items: baseline;
   gap: 0.6em;
   margin-top: 0.7rem;
-  color: color-mix(in srgb, var(--offwhite) 78%, transparent);
+  color: color-mix(in srgb, var(--c-ink) 78%, transparent);
 }
 .club-photo figcaption::before {
   content: "";
   flex: none;
   width: 1.1rem;
   height: 1px;
-  background: var(--grenat);
+  background: var(--c-accent);
   transform: translateY(-0.25em);
 }
-.club-photo figcaption b { color: var(--offwhite); font-weight: 600; }
+.club-photo figcaption b { color: var(--c-ink); font-weight: 600; }
 
 /* course tactique pointillée entre les photos */
 .club-run {
@@ -701,7 +718,7 @@ html.is-loading body { overflow: hidden; }
   overflow: visible;
 }
 .club-run path {
-  stroke: color-mix(in srgb, var(--offwhite) 45%, transparent);
+  stroke: color-mix(in srgb, var(--c-ink) 45%, transparent);
   stroke-width: 2;
   stroke-dasharray: 2 12;
   stroke-linecap: round;
@@ -714,8 +731,8 @@ html.is-loading body { overflow: hidden; }
   display: grid;
   place-items: center;
   background:
-    repeating-linear-gradient(135deg, color-mix(in srgb, var(--offwhite) 7%, transparent) 0 1px, transparent 1px 12px),
-    color-mix(in srgb, var(--navy) 55%, var(--club-bg));
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-ink) 7%, transparent) 0 1px, transparent 1px 12px),
+    linear-gradient(160deg, var(--c-mid), var(--c-base));
 }
 .ph-label {
   position: relative;
@@ -725,7 +742,7 @@ html.is-loading body { overflow: hidden; }
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--offwhite) 60%, transparent);
+  color: color-mix(in srgb, var(--c-ink) 60%, transparent);
 }
 
 /* ---------- C. Immersion ---------- */
@@ -733,7 +750,7 @@ html.is-loading body { overflow: hidden; }
   z-index: 2;
   width: 100vw;
   margin-left: -1px;
-  background: var(--navy);
+  background: var(--c-base);
   align-items: stretch;
   justify-content: stretch;
 }
@@ -756,8 +773,8 @@ html.is-loading body { overflow: hidden; }
 }
 .club-cover-media.ph {
   background:
-    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--club-glow) 70%, transparent), transparent 70%),
-    var(--navy);
+    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--c-glow) 70%, transparent), transparent 70%),
+    var(--c-base);
 }
 .ph-pitch {
   position: absolute;
@@ -765,7 +782,7 @@ html.is-loading body { overflow: hidden; }
   width: 100%;
   height: 100%;
 }
-.ph-pitch * { stroke: color-mix(in srgb, var(--offwhite) 20%, transparent); stroke-width: 2; }
+.ph-pitch * { stroke: color-mix(in srgb, var(--c-ink) 20%, transparent); stroke-width: 2; }
 .club-cover-frame {
   position: absolute;
   inset: 0;
@@ -774,8 +791,8 @@ html.is-loading body { overflow: hidden; }
   height: 100%;
   pointer-events: none;
 }
-.club-cover-frame rect { stroke: color-mix(in srgb, var(--offwhite) 70%, transparent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.club-cover-frame path { stroke: var(--grenat); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.club-cover-frame rect { stroke: color-mix(in srgb, var(--c-ink) 70%, transparent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.club-cover-frame path { stroke: var(--c-accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 
 .club-info1 {
   position: relative;
@@ -804,7 +821,7 @@ html.is-loading body { overflow: hidden; }
   font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.5;
-  color: color-mix(in srgb, var(--offwhite) 85%, transparent);
+  color: color-mix(in srgb, var(--c-ink) 85%, transparent);
 }
 
 .club-info2 {
@@ -819,8 +836,8 @@ html.is-loading body { overflow: hidden; }
   align-items: start;
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--navy) 92%, transparent) 0%,
-    color-mix(in srgb, var(--navy) 55%, transparent) 40%,
+    color-mix(in srgb, var(--c-base) 92%, transparent) 0%,
+    color-mix(in srgb, var(--c-base) 55%, transparent) 40%,
     transparent 75%
   );
 }
@@ -844,7 +861,7 @@ html.is-loading body { overflow: hidden; }
   display: block;
   height: 1px;
   margin-top: 0.6rem;
-  background: linear-gradient(90deg, transparent, var(--grenat));
+  background: linear-gradient(90deg, transparent, var(--c-accent));
 }
 .club-year {
   grid-row: 3;
@@ -854,7 +871,7 @@ html.is-loading body { overflow: hidden; }
   font-size: clamp(5rem, 16vw, 18.75rem);
   line-height: 0.8;
   color: transparent;
-  -webkit-text-stroke: 2px var(--offwhite);
+  -webkit-text-stroke: 2px var(--c-ink);
 }
 .club-year.is-left { grid-column: 1; justify-self: start; }
 .club-year.is-right { grid-column: 2; justify-self: end; }

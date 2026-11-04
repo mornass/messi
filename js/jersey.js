@@ -103,7 +103,7 @@ window.JerseyPlayer = (() => {
       vec2 p = vUv * 2.0 - 1.0;
       float d = dot(p, p);
       float a = (exp(-d * 5.5) * 0.7 + exp(-d * 2.0) * 0.3) * uOpacity;
-      gl_FragColor = vec4(vec3(0.01, 0.04, 0.09) * a, a);   // prémultiplié
+      gl_FragColor = vec4(vec3(0.02, 0.015, 0.02) * a, a);   // prémultiplié (noir neutre : va sur toutes les palettes)
     }
   `;
   const SHADOW_VERT = /* glsl */ `
