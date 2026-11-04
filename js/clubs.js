@@ -34,6 +34,8 @@
   const COVER_OPEN = "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)";
   const isMobile = () => window.innerWidth <= 991;
 
+  let jerseyOwner = null;              // club qui contrôle le canvas du maillot
+
   const maxX = (wrapper) => Math.max(0, wrapper.scrollWidth - window.innerWidth);
 
   function splitLetters(el, cls = "ltr") {
@@ -129,19 +131,24 @@
     const jersey = { y: -50, o: 0 };
     let active = false;
     const applyJersey = () => {
-      if (!active) return;
+      if (!active || jerseyOwner !== id) return;
       gsap.set(player.canvas, { xPercent: -50, yPercent: jersey.y, opacity: jersey.o });
     };
+    // un seul canvas pour tous les clubs : seul le club "propriétaire" le pilote,
+    // pour qu'une sortie tardive (saut via la barre) n'éteigne pas le club suivant
     const activate = async () => {
       active = true;
+      jerseyOwner = id;
       document.documentElement.setAttribute("data-gl-covered", "");
       await player.load(id, spec);
-      if (!active || !player.setSection(id)) return;
+      if (!active || jerseyOwner !== id || !player.setSection(id)) return;
       applyJersey();
-      requestAnimationFrame(() => active && player.start());
+      requestAnimationFrame(() => active && jerseyOwner === id && player.start());
     };
     const deactivate = () => {
       active = false;
+      if (jerseyOwner !== id) return;
+      jerseyOwner = null;
       document.documentElement.removeAttribute("data-gl-covered");
       player.stop();
       player.clear();

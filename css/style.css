@@ -498,6 +498,7 @@ html.is-loading body { overflow: hidden; }
   --club-stripe-a: color-mix(in srgb, var(--club-bg) 95%, var(--offwhite));
   --club-stripe-b: color-mix(in srgb, var(--club-bg) 86%, var(--navy));
   --chalk: color-mix(in srgb, var(--offwhite) 38%, transparent);
+  --club-glow: var(--barca);   /* halo de l'image plein écran (placeholder) */
   position: relative;
   z-index: 1;
   height: 100vh;
@@ -506,6 +507,13 @@ html.is-loading body { overflow: hidden; }
   background: var(--navy);
 }
 .club.is-barca { --club-bg: var(--barca); }
+/* Newell's (rouge et noir) : marine profond, bandes à peine teintées de grenat */
+.club.is-newells {
+  --club-bg: color-mix(in srgb, var(--navy) 88%, black);
+  --club-stripe-a: color-mix(in srgb, var(--club-bg) 94%, var(--offwhite));
+  --club-stripe-b: color-mix(in srgb, var(--club-bg) 90%, var(--grenat));
+  --club-glow: color-mix(in srgb, var(--grenat) 30%, var(--navy));
+}
 
 .club-wrapper {
   position: relative;
@@ -748,7 +756,7 @@ html.is-loading body { overflow: hidden; }
 }
 .club-cover-media.ph {
   background:
-    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--barca) 70%, transparent), transparent 70%),
+    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--club-glow) 70%, transparent), transparent 70%),
     var(--navy);
 }
 .ph-pitch {
