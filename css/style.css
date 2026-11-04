@@ -1132,11 +1132,55 @@ html.is-loading body { overflow: hidden; }
   text-transform: uppercase;
 }
 .is-intro .bdo-body { left: 9vw; }
-.bdo-outro {
+/* final : photo plein écran, ouverte depuis un cadre au centre (js/ballons-dor.js) */
+.bdo-final {
   position: absolute;
-  left: 9vw;
-  bottom: calc(100% - var(--line) + 1.5vw);
-  width: min(40rem, 50vw);
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  clip-path: inset(38% 40% 26% 40%);
+  visibility: hidden;
+}
+.bdo-final-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #050505;
+}
+.bdo-final-media > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 30%;
+  transform: scale(var(--final-zoom, 1));
+  animation: media-in 0.8s ease both;
+}
+.bdo-final-media .ph-label { position: absolute; inset: 0; display: grid; place-items: center; }
+.bdo-final-media.is-loaded > .ph-label { display: none; }
+/* voile pour la lisibilité du texte, en bas à gauche */
+.bdo-final::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, rgba(5, 10, 20, 0.85) 0%, rgba(5, 10, 20, 0.2) 45%, transparent 70%),
+    linear-gradient(90deg, rgba(5, 10, 20, 0.55) 0%, transparent 50%);
+}
+.bdo-final-text {
+  position: absolute;
+  z-index: 1;
+  left: var(--gap);
+  bottom: calc(2 * var(--gap));
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--offwhite);
+}
+.bdo-final-text .eyebrow { color: color-mix(in srgb, var(--offwhite) 75%, transparent); }
+.bdo-outro {
+  width: min(40rem, 60vw);
   margin: 0;
   font-family: var(--font-display);
   font-weight: 800;
@@ -1201,7 +1245,7 @@ html.is-loading body { overflow: hidden; }
   .bdo-photo { left: -14vw; top: calc(var(--line) + 9.5rem); width: 60vw; }
   .bdo-title { left: 12vw; font-size: 13vw; }
   .is-intro .bdo-body { left: -14vw; }
-  .bdo-outro { left: 12vw; width: 70vw; font-size: 8vw; }
+  .bdo-outro { width: 88vw; font-size: 9vw; }
   .bdo-shadow { width: 14vh; }
 }
 

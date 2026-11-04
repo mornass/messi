@@ -30,11 +30,13 @@
   const intro = section.querySelectorAll("[data-bdo-intro]");
   const outro = section.querySelector("[data-bdo-outro]");
   const shadow = section.querySelector("[data-bdo-shadow]");
+  const final = section.querySelector("[data-bdo-final]");
+  const canvasHolder = section.querySelector("[data-bdo-canvas]");
 
   const D = { introHold: 0.5, move: 1, arrive: 0.35, hold: 0.6, outroHold: 0.9 };
   const FILL_ON = "rgba(246, 245, 240, 1)";
   const FILL_OFF = "rgba(246, 245, 240, 0)";
-  const OUTRO_X = 8.85;
+  const OUTRO_X = 8.55;
 
   // distance entre deux trophées (--S) et position du ballon (--ball-x), en px
   const S = () => stops[0].offsetLeft;
@@ -95,11 +97,18 @@
     tl.to(counter, { n: i, duration: D.arrive, ease: "power2.out", onUpdate: renderCount }, at);
     tl.to({}, { duration: D.hold }, at + D.arrive);
   });
-  // conclusion
+  // conclusion : le ballon roule encore un peu, puis la photo des 8 Ballons d'Or
+  // s'ouvre en plein écran (cadre central → plein écran, léger dézoom),
+  // le ballon s'efface et la phrase finale se pose sur la photo
   const end = tl.duration();
   tl.to(stops[stops.length - 1].querySelector("[data-bdo-year]"), { color: FILL_OFF, duration: 0.4, ease: "none" }, end);
-  tl.to(track, { x: () => -OUTRO_X * S(), duration: D.move }, end);
-  tl.to(outro, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, end + D.move - 0.15);
+  tl.to(track, { x: () => -OUTRO_X * S(), duration: D.move * 0.8 }, end);
+  const open = end + 0.35;
+  tl.set(final, { visibility: "visible" }, open);
+  tl.fromTo(final, { clipPath: "inset(38% 40% 26% 40%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, ease: "power2.inOut" }, open);
+  tl.fromTo(final, { "--final-zoom": 1.25 }, { "--final-zoom": 1, duration: 1.6, ease: "power2.out" }, open);
+  tl.to([canvasHolder, shadow], { autoAlpha: 0, duration: 0.6, ease: "none" }, open + 0.3);
+  tl.to(outro, { autoAlpha: 1, y: 0, duration: 0.6, ease: "power3.out" }, open + 1.1);
   tl.to({}, { duration: D.outroHold });
 
   // trait plein de la ligne de craie : jusqu'au ballon
