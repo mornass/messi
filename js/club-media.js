@@ -10,7 +10,8 @@
    - fichier absent : le placeholder reste affiché (fallback essayé d'abord)
    - data-media-youtube="ID" / data-media-facebook="URL" : vidéo intégrée (API
      IFrame YouTube / SDK Facebook), muette, en boucle, sans interface visible ;
-     data-media-poster = image de couverture pendant le chargement ;
+     data-media-poster = image de couverture pendant le chargement
+     (data-media-poster-pos = son cadrage, ex. « 50% 70% ») ;
      data-media sert de repli
 
    API (utilisée par js/clubs.js) :
@@ -83,6 +84,7 @@ window.ClubMedia = (() => {
       img.alt = "";
       img.decoding = "async";
       img.src = poster;
+      if (slot.dataset.mediaPosterPos) img.style.objectPosition = slot.dataset.mediaPosterPos; // cadrage (photo verticale)
       wrap.appendChild(img);
     }
     const stage = document.createElement("div");
