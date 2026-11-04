@@ -12,8 +12,12 @@ Dépendances : pip install fonttools brotli uharfbuzz
 Police      : npm pack @fontsource-variable/archivo
               → files/archivo-latin-wdth-italic.woff2
 
+Police des noms de club : Kaushan Script (pinceau, licence OFL)
+  npm pack @fontsource/kaushan-script → files/kaushan-script-latin-400-normal.woff2
+  (une police variable comme Archivo est réglée sur AXES ci-dessous)
+
 Usage :
-  python3 tools/club-name-paths.py chemin/archivo-latin-wdth-italic.woff2 "NEWELL'S"
+  python3 tools/club-name-paths.py chemin/kaushan-script-latin-400-normal.woff2 "Newell's"
   → 1re ligne : le viewBox ; ensuite les <path>, à mettre dans
     <svg class="club-name" … data-club-name>
 """
@@ -26,13 +30,14 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.boundsPen import BoundsPen
 
-AXES = {"wght": 900, "wdth": 75}
+AXES = {"wght": 900, "wdth": 75}  # seulement pour une police variable (Archivo)
 SIZE = 180  # corps de référence (unités du viewBox) ; la taille réelle est fixée en CSS
 
 
 def main(font_path, text):
     font = TTFont(font_path)
-    inst = instancer.instantiateVariableFont(font, AXES)
+    variable = "fvar" in font
+    inst = instancer.instantiateVariableFont(font, AXES) if variable else font
     upem = inst["head"].unitsPerEm
     glyphs = inst.getGlyphSet()
 
@@ -43,7 +48,8 @@ def main(font_path, text):
     data = io.BytesIO()
     raw.save(data)
     hbfont = hb.Font(hb.Face(data.getvalue()))
-    hbfont.set_variations(AXES)
+    if variable:
+        hbfont.set_variations(AXES)
     buf = hb.Buffer()
     buf.add_str(text)
     buf.guess_segment_properties()
