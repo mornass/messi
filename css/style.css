@@ -705,12 +705,35 @@ html.is-loading body { overflow: hidden; }
   overflow: hidden;
   border: 1px solid var(--chalk);
 }
-.club-photo-media img {
+.club-photo-media img,
+.club-photo-media video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* médias chargés par js/club-media.js : fondu au-dessus du placeholder */
+.club-photo-media > img,
+.club-photo-media > video,
+.club-cover-media > img,
+.club-cover-media > video { animation: media-in 0.8s ease both; }
+@keyframes media-in { from { opacity: 0; } }
+.club-photo-media.is-loaded > .ph-label,
+.club-cover-media.is-loaded > .ph-label,
+.club-cover-media.is-loaded > .ph-pitch { display: none; }
+/* placeholder vidéo : petit triangle de lecture au-dessus du libellé */
+.club-photo-media.is-video:not(.is-loaded)::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - 1.6rem);
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0.45rem 0 0.45rem 0.75rem;
+  border-color: transparent transparent transparent color-mix(in srgb, var(--c-ink) 60%, transparent);
+  transform: translateX(-35%);
 }
 .club-photo figcaption {
   display: flex;

@@ -111,7 +111,8 @@
     const immersion = section.querySelector("[data-club-immersion]");
     const cover = immersion.querySelector("[data-club-cover]");
     const coverFrame = immersion.querySelector("[data-club-cover-frame]");
-    const coverVideo = cover.querySelector("video");
+    // photos et vidéos (js/club-media.js) : chargées à l'approche du club, lues quand il est actif
+    const media = window.ClubMedia ? ClubMedia.attach(section) : null;
     const info1 = immersion.querySelector("[data-club-info1]");
     const info2 = immersion.querySelector("[data-club-info2]");
 
@@ -171,6 +172,8 @@
     // pour qu'une sortie tardive (saut via la barre) n'éteigne pas le club suivant
     const activate = async () => {
       active = true;
+      media?.load();
+      media?.setGallery(true);
       jerseyOwner = id;
       document.documentElement.setAttribute("data-gl-covered", "");
       await player.load(id, spec);
@@ -180,6 +183,8 @@
     };
     const deactivate = () => {
       active = false;
+      media?.setGallery(false);
+      media?.setCover(false);
       if (jerseyOwner !== id) return;
       jerseyOwner = null;
       document.documentElement.removeAttribute("data-gl-covered");
@@ -251,11 +256,11 @@
       if (t >= lettersAt && !lettersIn) {
         lettersIn = true;
         if (vLetters.length) gsap.to(vLetters, { yPercent: 0, duration: 0.8, ease: "expo.out", stagger: 0.04, overwrite: true });
-        coverVideo?.play().catch(() => {});
+        media?.setCover(true);
       } else if (t < lettersAt && lettersIn) {
         lettersIn = false;
         if (vLetters.length) gsap.to(vLetters, { yPercent: 120, duration: 0.4, ease: "expo.out", stagger: 0.04, overwrite: true });
-        coverVideo?.pause();
+        media?.setCover(false);
       }
       updateGallery();
     });
@@ -317,7 +322,10 @@
       trigger: section,
       start: "top bottom+=150%",
       once: true,
-      onEnter: () => player.load(id, spec),
+      onEnter: () => {
+        player.load(id, spec);
+        media?.load();
+      },
     });
   }
 
