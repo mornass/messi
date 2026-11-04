@@ -1181,6 +1181,16 @@ html.is-loading body { overflow: hidden; }
   pointer-events: none;
 }
 .bdo-canvas canvas { display: block; width: 100%; height: 100%; }
+.bdo-trophy-img {
+  position: absolute;
+  z-index: 3;
+  top: var(--line);
+  left: var(--ball-x);
+  width: auto;
+  height: 36vh;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
 .bdo-shadow {
   position: absolute;
   z-index: 2;

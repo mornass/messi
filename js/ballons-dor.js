@@ -116,131 +116,110 @@
   }
 
   /* =========================================================
-     BALLON D'OR 3D
-     Coutures de vrai ballon : 12 pentagones + 20 hexagones (cellules de
-     Voronoï autour des sommets de l'icosaèdre et du dodécaèdre), or
-     martelé, reflets d'environnement, lumière qui suit la souris.
+     TROPHÉE 3D — modèle du Ballon d'Or (assets/3d/ballon-dor.glb,
+     converti depuis l'USDZ par tools/usdz-to-glb.py)
+     - posé sur la ligne de craie, il tourne sur lui-même : exactement un
+       tour entre deux trophées, donc il présente la même face à chaque arrêt
+     - matériaux du modèle (or poli, socle argent) + reflets de studio
+     - chargé seulement à l'approche de la section ; en attendant (ou sans
+       WebGL), la photo du trophée (assets/3d/ballon-dor.png) est affichée
      ========================================================= */
   const holder = section.querySelector("[data-bdo-canvas]");
-  if (!window.THREE || !holder) return;
+  const photo = section.querySelector("[data-bdo-trophy-img]");
+  const TROPHY_H = () => (window.innerWidth <= 767 ? 0.26 : 0.36) * window.innerHeight; // hauteur à l'écran
+  const FRONT = -Math.PI / 2 + 0.45; // angle où l'inscription regarde l'écran (3/4 face)
 
-  const PHI = (1 + Math.sqrt(5)) / 2;
-  const centers = [];
-  // icosaèdre (pentagones)
-  [[0, 1, PHI], [0, -1, PHI], [0, 1, -PHI], [0, -1, -PHI], [1, PHI, 0], [-1, PHI, 0], [1, -PHI, 0], [-1, -PHI, 0], [PHI, 0, 1], [-PHI, 0, 1], [PHI, 0, -1], [-PHI, 0, -1]]
-    .forEach((v) => centers.push(new THREE.Vector3(...v).normalize()));
-  // dodécaèdre (hexagones)
-  const ip = 1 / PHI;
-  for (const a of [-1, 1]) for (const b of [-1, 1]) for (const c of [-1, 1]) centers.push(new THREE.Vector3(a, b, c).normalize());
-  for (const a of [-1, 1]) for (const b of [-1, 1]) {
-    centers.push(new THREE.Vector3(0, a * ip, b * PHI).normalize());
-    centers.push(new THREE.Vector3(a * ip, b * PHI, 0).normalize());
-    centers.push(new THREE.Vector3(a * PHI, 0, b * ip).normalize());
+  function placePhoto() {
+    if (!photo) return;
+    gsap.set(photo, { height: TROPHY_H() * 1.02 });
   }
+  placePhoto();
+  window.addEventListener("resize", placePhoto);
+  gsap.set(shadow, { width: TROPHY_H() * 0.75, height: TROPHY_H() * 0.09 });
+
+  if (!window.THREE || !THREE.GLTFLoader || !holder) return;
 
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
   renderer.setClearColor(0x000000, 0);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.55;
+  renderer.physicallyCorrectLights = true;
   holder.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -2000, 2000);
+  const camera = new THREE.PerspectiveCamera(22, 1, 1, 20000);
 
-  const uniforms = {
-    uCenters: { value: centers },
-    uLight: { value: new THREE.Vector3(-0.4, 0.7, 0.9) },
-    uGold: { value: new THREE.Color("#C9A13B") },
-  };
-  const ball = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 96, 64),
-    new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: /* glsl */ `
-        varying vec3 vN;     // normale (repère vue)
-        varying vec3 vObj;   // position sur la sphère (repère objet : suit la rotation)
-        void main() {
-          vObj = normalize(position);
-          vN = normalize(normalMatrix * normal);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform vec3 uCenters[32];
-        uniform vec3 uLight;
-        uniform vec3 uGold;
-        varying vec3 vN;
-        varying vec3 vObj;
+  // reflets : studio neutre (RoomEnvironment) + lumière chaude qui suit la souris
+  if (THREE.RoomEnvironment) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+  }
+  const key = new THREE.DirectionalLight(0xffe7b8, 3.2);
+  key.position.set(-1, 1.4, 1.2);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x6f8fd0, 1.2); // contre-jour bleuté (palette du site)
+  rim.position.set(1.2, 0.6, -1);
+  scene.add(rim);
 
-        float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
-        float noise(vec3 p) {
-          vec3 i = floor(p), f = fract(p);
-          f = f * f * (3.0 - 2.0 * f);
-          return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-                     mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
-        }
+  const pivot = new THREE.Group(); // à la place du ballon, sur la ligne
+  const spinner = new THREE.Group(); // rotation sur lui-même
+  pivot.add(spinner);
+  scene.add(pivot);
+  let model = null;
 
-        void main() {
-          // panneau le plus proche et le second : la couture est là où ils se valent
-          vec3 p = normalize(vObj);
-          float d1 = -2.0, d2 = -2.0; int best = 0;
-          for (int i = 0; i < 32; i++) {
-            float d = dot(p, uCenters[i]);
-            if (d > d1) { d2 = d1; d1 = d; best = i; }
-            else if (d > d2) { d2 = d; }
-          }
-          float seam = 1.0 - smoothstep(0.004, 0.022, d1 - d2);
-          float pent = best < 12 ? 1.0 : 0.0;
-
-          // or martelé : petites bosses qui modulent la normale et la teinte
-          float h = noise(p * 22.0) * 0.6 + noise(p * 47.0) * 0.4;
-          vec3 N = normalize(vN + (h - 0.5) * 0.18 * vec3(1.0, 1.0, 0.0));
-          vec3 V = vec3(0.0, 0.0, 1.0);
-          vec3 L = normalize(uLight);
-
-          float diff = max(dot(N, L), 0.0);
-          vec3 R = reflect(-V, N);
-          // environnement : ciel chaud en haut, bleu marine du site en bas
-          vec3 env = mix(vec3(0.03, 0.07, 0.14), vec3(1.0, 0.94, 0.82), smoothstep(-0.35, 0.75, R.y));
-          env += vec3(0.25, 0.18, 0.08) * exp(-abs(R.y) * 9.0);          // ligne d'horizon
-          vec3 gold = uGold * mix(1.0, 0.86, pent) * (0.92 + h * 0.16);
-
-          vec3 col = gold * (0.18 + 0.55 * diff) + gold * env * 0.85;
-          float spec = pow(max(dot(reflect(-L, N), V), 0.0), 60.0);
-          col += vec3(1.0, 0.93, 0.75) * spec * 1.1;
-          float fres = pow(1.0 - max(N.z, 0.0), 3.0);
-          col += gold * fres * 0.35;
-
-          // couture creusée : sombre, sans reflet
-          col = mix(col, gold * 0.18, seam * 0.85);
-          gl_FragColor = vec4(col, 1.0);
-        }
-      `,
-    })
-  );
-  ball.rotation.order = "ZXY"; // le roulement (axe z) s'applique en dernier
-  scene.add(ball);
-
-  let R = 1;
   function resize() {
     const w = section.clientWidth, h = section.clientHeight;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(w, h, false);
-    camera.left = -w / 2; camera.right = w / 2; camera.top = h / 2; camera.bottom = -h / 2;
+    // caméra perspective réglée pour qu'1 unité = 1 px dans le plan z = 0
+    camera.aspect = w / h;
+    camera.position.set(0, 0, h / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    camera.near = camera.position.z / 10;
+    camera.far = camera.position.z * 10;
     camera.updateProjectionMatrix();
-    const mobile = w <= 767;
-    R = mobile ? Math.min(h * 0.07, w * 0.13) : Math.min(h * 0.115, w * 0.09);
-    ball.scale.setScalar(R);
-    ball.position.set(ballX() - w / 2, h / 2 - lineY() + R, 0);
-    gsap.set(shadow, { width: R * 2.3, height: R * 0.4 });
+    const H = TROPHY_H();
+    pivot.scale.setScalar(H);
+    pivot.position.set(ballX() - w / 2, h / 2 - lineY(), 0);
+    gsap.set(shadow, { width: H * 0.75, height: H * 0.09 });
     updateRail();
   }
   window.addEventListener("resize", resize);
   resize();
   ScrollTrigger.addEventListener("refresh", resize);
 
-  // lumière qui suit la souris (amortie)
-  const mouse = { x: -0.4, y: 0.7, tx: -0.4, ty: 0.7 };
+  // chargement du modèle à l'approche de la section
+  ScrollTrigger.create({
+    trigger: section,
+    start: "top bottom+=100%",
+    once: true,
+    onEnter: () => {
+      new THREE.GLTFLoader().load(
+        "assets/3d/ballon-dor.glb",
+        (gltf) => {
+          model = gltf.scene;
+          model.traverse((o) => {
+            if (!o.isMesh) return;
+            const m = o.material;
+            // réglages proches de la photo : or chaud poli, socle doré-argenté plus mat
+            // or poli : teinte physique de l'or (linéaire), la couleur d'origine du modèle sortait brune
+            if (/gold/i.test(m.name)) { m.color.setRGB(1.0, 0.8, 0.33); m.roughness = 0.12; m.envMapIntensity = 2.8; }
+            if (/silver/i.test(m.name)) { m.color.setRGB(0.82, 0.64, 0.32); m.roughness = 0.3; m.envMapIntensity = 2.3; }
+          });
+          spinner.add(model);
+          gsap.fromTo(spinner.scale, { x: 0.85, y: 0.85, z: 0.85 }, { x: 1, y: 1, z: 1, duration: 0.9, ease: "back.out(1.6)" });
+          if (photo) gsap.to(photo, { autoAlpha: 0, duration: 0.5, delay: 0.1 });
+        },
+        undefined,
+        () => console.info("[ballons-dor] modèle 3D introuvable : la photo reste affichée")
+      );
+    },
+  });
+
+  // légère inclinaison qui suit la souris (amortie)
+  const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
   window.addEventListener("mousemove", (e) => {
-    mouse.tx = (e.clientX / window.innerWidth) * 1.6 - 0.8;
-    mouse.ty = 1 - (e.clientY / window.innerHeight) * 1.2;
+    mouse.tx = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.ty = (e.clientY / window.innerHeight) * 2 - 1;
   }, { passive: true });
 
   // rendu uniquement quand la section est à l'écran
@@ -252,16 +231,15 @@
     onToggle: (self) => (visible = self.isActive),
   });
 
-  let spin = 0;
-  gsap.ticker.add((t, dt) => {
-    if (!visible) return;
+  gsap.ticker.add(() => {
+    if (!visible || !model) return;
     const traveled = -gsap.getProperty(track, "x");
-    spin += (dt / 1000) * 0.15; // très légère rotation sur lui-même au repos
-    // roulement sans glisser : angle = distance / rayon
-    ball.rotation.set(0.35, spin, -traveled / R);
-    mouse.x += (mouse.tx - mouse.x) * 0.06;
-    mouse.y += (mouse.ty - mouse.y) * 0.06;
-    uniforms.uLight.value.set(mouse.x, mouse.y, 0.9);
+    // un tour complet entre deux trophées : même face à chaque arrêt
+    spinner.rotation.y = FRONT + (traveled / S()) * Math.PI * 2;
+    mouse.x += (mouse.tx - mouse.x) * 0.05;
+    mouse.y += (mouse.ty - mouse.y) * 0.05;
+    pivot.rotation.set(mouse.y * 0.08, mouse.x * 0.12, 0);
+    key.position.set(-1 + mouse.x * 0.8, 1.4 - mouse.y * 0.6, 1.2);
     renderer.render(scene, camera);
   });
   }
