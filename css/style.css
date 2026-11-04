@@ -25,6 +25,46 @@ body {
   overflow-x: clip;
 }
 
+/* lien d'évitement : visible seulement au clavier */
+.skip-link {
+  position: fixed;
+  z-index: 200;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: 0.6rem;
+  background: var(--navy);
+  color: var(--offwhite);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 0.25s ease;
+}
+.skip-link:focus { transform: none; }
+
+/* focus clavier visible partout (la souris n'affiche rien) */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--grenat);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.clubs :where(a, button):focus-visible,
+.bdo :where(a, button):focus-visible,
+.site-footer :where(a, button):focus-visible,
+.menu :where(a, button):focus-visible { outline-color: var(--offwhite); }
+
+/* « réduire les animations » : transitions et boucles CSS coupées */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .sr-only {
   position: absolute; width: 1px; height: 1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
@@ -531,7 +571,7 @@ html.is-loading body { overflow: hidden; }
   text-transform: uppercase;
   text-decoration: none;
   color: inherit;
-  opacity: 0.55;
+  opacity: 0.7;
   transition: opacity 0.35s ease;
 }
 .clubs-link span { display: inline-block; }
@@ -990,7 +1030,8 @@ html.is-loading body { overflow: hidden; }
 }
 @media (max-width: 767px) {
   .clubs-nav-inner { gap: 0.75rem; overflow-x: auto; scrollbar-width: none; }
-  .clubs-link { flex: none; font-size: 0.5625rem; }
+  .clubs-link { flex: none; font-size: 0.5625rem; padding-top: 0.7rem; padding-bottom: calc(0.45em + 0.7rem); }
+  .clubs-nav-inner { padding-top: 0.55rem; padding-bottom: 0.55rem; }
 }
 
 @media (max-width: 991px) {
@@ -1204,7 +1245,7 @@ html.is-loading body { overflow: hidden; }
 }
 .bdo-index li {
   position: relative;
-  color: color-mix(in srgb, var(--ink) 28%, transparent);
+  color: color-mix(in srgb, var(--ink) 48%, transparent);
   transition: color 0.4s ease;
 }
 .bdo-index li.is-on { color: var(--champ); }
@@ -1796,6 +1837,7 @@ html.is-loading .menu-btn { opacity: 0; pointer-events: none; }
   .menu-images { display: none; }
   .menu-link-text, .menu-link-wave { font-size: 12vw; }
   .menu-foot { font-size: 0.5625rem; }
+  .menu-clubs a { padding: 0.5rem 0.2rem; }
   .clubs-nav-inner { padding-right: calc(var(--gap) + 3.5rem); }
 }
 

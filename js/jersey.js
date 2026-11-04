@@ -328,7 +328,8 @@ window.JerseyPlayer = (() => {
       this.camera.position.set(0, 0.07, dist);
       this.camera.lookAt(0, 0, 0);
       this.camera.updateProjectionMatrix();
-      this.root.scale.setScalar(isMobile() ? CFG.sizeMobile : CFG.size);
+      // écran en hauteur : le maillot ne doit pas dépasser ~80 % de la largeur visible
+      this.root.scale.setScalar(Math.min(isMobile() ? CFG.sizeMobile : CFG.size, (w / h) * 0.78));
       if (!this.animating && this.current) this.render(0);
     }
 

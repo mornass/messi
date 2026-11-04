@@ -69,7 +69,12 @@
   const THEME_LAG = 0.8;                // lissage de la transition (s)
   let jerseyOwner = null;              // club qui contrôle le canvas du maillot
 
-  const maxX = (wrapper) => Math.max(0, wrapper.scrollWidth - window.innerWidth);
+  // distance de défilement horizontal : jusqu'au bord droit du dernier panneau
+  // (pas scrollWidth : les photos décalées de la galerie le gonflent, surtout sur mobile)
+  const maxX = (wrapper) => {
+    const last = wrapper.lastElementChild;
+    return Math.max(0, last.offsetLeft + last.offsetWidth - window.innerWidth);
+  };
 
   function splitLetters(el, cls = "ltr") {
     const text = el.textContent.trim();
@@ -381,7 +386,13 @@
     let current = null;
     const setActive = (id) => {
       current = id;
-      links.forEach((a) => a.classList.toggle("is-active", a.dataset.clubLink === id));
+      links.forEach((a) => {
+        const on = a.dataset.clubLink === id;
+        a.classList.toggle("is-active", on);
+        // lecteurs d'écran : le club affiché est annoncé comme « actuel »
+        if (on) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      });
     };
 
     // club actif = celui dont la piste (épinglage) contient le scroll
