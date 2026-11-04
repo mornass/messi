@@ -1067,6 +1067,97 @@
       </div>
     </section>
 
+
+    <!-- =====================================================
+         4. EN CHIFFRES (js/stats.js) — section claire, palette du site
+            - les 672 buts au Barça, un point par but, une colonne par saison,
+              qui se remplissent au scroll (compteur 0 → 672)
+            - 8 records révélés à la manière de landonorris.com (data-stat-list :
+              découpe + bloc de couleur qui se retire), chiffres en compteur
+            Uniquement des chiffres définitifs (pas de totaux de carrière en cours).
+         ===================================================== -->
+    <section class="stats" id="chiffres" data-stats>
+      <div class="stats-sheet" data-stats-sheet>
+        <header class="stats-head">
+          <span class="eyebrow stats-kicker">En chiffres</span>
+          <h2 class="stats-title" data-stats-title data-anim-high="right, barca"><span class="line">Les chiffres</span><em class="line">d'une légende</em></h2>
+          <p class="stats-intro">Records de buts, de matchs et de trophées&nbsp;: dix-sept saisons au Barça, racontées par les nombres.</p>
+        </header>
+
+        <div class="stats-goals" data-stats-goals>
+          <div class="stats-goals-head">
+            <div class="stats-goals-count" aria-hidden="true"><span data-stats-goals-n>0</span></div>
+            <p class="stats-goals-text">buts avec le FC Barcelone, saison par saison&nbsp;: <strong>meilleur buteur de l'histoire du club</strong>. Un point = un but.</p>
+          </div>
+          <div class="stats-chart" data-stats-chart role="img" aria-label="672 buts avec le FC Barcelone, de 1 but en 2004-05 à 73 buts en 2011-12, record, puis 38 buts en 2020-21."></div>
+        </div>
+
+        <ul class="stats-list" data-stat-list>
+        <li class="stat is-feature" data-stat-item>
+          <div class="stat-body">
+            <span class="stat-num" data-count="91" aria-label="91">0</span>
+            <span class="stat-label">buts en 2012</span>
+            <span class="stat-ctx">Record du monde · année civile</span>
+          </div>
+          <div class="stat-media" data-media="assets/chiffres/chiffres-91.mp4" data-media-fallback="assets/chiffres/chiffres-91.jpg">
+            <span class="ph-label">Vidéo ou photo · 91 buts en 2012</span>
+          </div>
+        </li>
+        <li class="stat " data-stat-item>
+          <div class="stat-body">
+            <span class="stat-num" data-count="73" aria-label="73">0</span>
+            <span class="stat-label">buts en une saison</span>
+            <span class="stat-ctx">2011-12 · toutes compétitions</span>
+          </div>
+        </li>
+        <li class="stat " data-stat-item>
+          <div class="stat-body">
+            <span class="stat-num" data-count="50" aria-label="50">0</span>
+            <span class="stat-label">buts en Liga en une saison</span>
+            <span class="stat-ctx">2011-12 · record de la Liga</span>
+          </div>
+        </li>
+        <li class="stat " data-stat-item>
+          <div class="stat-body">
+            <span class="stat-num" data-count="474" aria-label="474">0</span>
+            <span class="stat-label">buts en Liga</span>
+            <span class="stat-ctx">Record de la compétition</span>
+          </div>
+        </li>
+        <li class="stat " data-stat-item>
+          <div class="stat-body">
+            <span class="stat-num" data-count="778" aria-label="778">0</span>
+            <span class="stat-label">matchs avec le Barça</span>
+            <span class="stat-ctx">Record du club · 2004 — 2021</span>
+          </div>
+        </li>
+        <li class="stat " data-stat-item>
+          <div class="stat-body">
+            <span class="stat-num" data-count="129" aria-label="129">0</span>
+            <span class="stat-label">buts en Ligue des champions</span>
+            <span class="stat-ctx">Quatre titres : 2006, 2009, 2011, 2015</span>
+          </div>
+        </li>
+        <li class="stat " data-stat-item>
+          <div class="stat-body">
+            <span class="stat-num" data-count="6" aria-label="6">0</span>
+            <span class="stat-label">Souliers d'or européens</span>
+            <span class="stat-ctx">Record · 2010, 2012, 2013, 2017, 2018, 2019</span>
+          </div>
+        </li>
+        <li class="stat is-feature is-wide" data-stat-item>
+          <div class="stat-body">
+            <span class="stat-num" data-count="35" aria-label="35">0</span>
+            <span class="stat-label">trophées avec le Barça</span>
+            <span class="stat-ctx">Dont 10 Liga et 4 Ligues des champions</span>
+          </div>
+          <div class="stat-media" data-media="assets/chiffres/chiffres-35.mp4" data-media-fallback="assets/chiffres/chiffres-35.jpg">
+            <span class="ph-label">Vidéo ou photo · 35 trophées avec le Barça</span>
+          </div>
+        </li>
+        </ul>
+      </div>
+    </section>
   </main>
 
   <!-- =====================================================
@@ -1123,6 +1214,7 @@
   <script src="js/club-media.js"></script>
   <script src="js/clubs.js"></script>
   <script src="js/ballons-dor.js"></script>
+  <script src="js/stats.js"></script>
   <script src="js/menu.js"></script>
 </body>
 </html>

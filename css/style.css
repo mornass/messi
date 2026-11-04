@@ -1321,6 +1321,207 @@ html.is-loading body { overflow: hidden; }
 }
 
 /* =========================================================
+   4. EN CHIFFRES (js/stats.js) — section claire, palette du site
+   La feuille blanc cassé monte par-dessus la section noire : ses coins
+   arrondis s'aplatissent au scroll.
+   ========================================================= */
+.stats {
+  position: relative;
+  z-index: 2;
+  background: #0E0E12; /* bas de la section Ballons d'Or, sous les coins arrondis */
+}
+.stats-sheet {
+  position: relative;
+  padding: 9rem 6vw 8rem;
+  background: var(--offwhite);
+  color: var(--navy);
+  border-radius: 3rem 3rem 0 0;
+  will-change: transform;
+}
+.stats-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+  align-items: end;
+  gap: 2rem 6vw;
+  margin-bottom: 6rem;
+}
+.stats-kicker { grid-column: 1 / -1; color: color-mix(in srgb, var(--navy) 60%, transparent); }
+.stats-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 75%;
+  font-size: clamp(3.2rem, 9vw, 9.5rem);
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.stats-title em {
+  display: block;
+  font-weight: 400;
+  font-style: italic;
+  font-stretch: 100%;
+  font-size: 0.55em;
+  text-transform: none;
+  color: var(--barca);
+}
+.stats-intro {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--navy) 70%, transparent);
+}
+
+/* ---------- les 672 buts ---------- */
+.stats-goals {
+  padding: 3rem 0 4rem;
+  border-top: 1px solid color-mix(in srgb, var(--navy) 18%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--navy) 18%, transparent);
+  margin-bottom: 6rem;
+}
+.stats-goals-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 2rem 4vw;
+  margin-bottom: 3rem;
+}
+.stats-goals-count {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  font-stretch: 75%;
+  font-size: clamp(6rem, 18vw, 17rem);
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy);
+  min-width: 3.2ch;
+}
+.stats-goals-text {
+  margin: 0 0 0.6rem;
+  max-width: 22rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--navy) 75%, transparent);
+}
+.stats-goals-text strong { color: var(--navy); }
+.stats-chart { width: 100%; }
+.stats-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.stats-chart .dot { fill: color-mix(in srgb, var(--navy) 10%, transparent); transition: fill 0.25s ease; }
+.stats-chart .dot.is-on { fill: var(--navy); }
+.stats-chart .col.is-record .dot.is-on { fill: var(--barca); }
+.stats-chart .season,
+.stats-chart .value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  fill: color-mix(in srgb, var(--navy) 55%, transparent);
+}
+.stats-chart .value { fill: var(--navy); opacity: 0; transition: opacity 0.4s ease; }
+.stats-chart .col.is-done .value { opacity: 1; }
+.stats-chart .col.is-record .value { fill: var(--grenat); }
+
+/* ---------- les 8 records (révélation à la landonorris.com) ---------- */
+/* lignes de grille : 1 px d'espace sur un fond bleu marine très clair */
+.stats-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: color-mix(in srgb, var(--navy) 16%, var(--offwhite));
+  border-top: 1px solid color-mix(in srgb, var(--navy) 16%, var(--offwhite));
+  border-bottom: 1px solid color-mix(in srgb, var(--navy) 16%, var(--offwhite));
+}
+.stat {
+  position: relative;
+  display: flex;
+  gap: 1.5rem;
+  min-height: 16rem;
+  padding: 1.75rem 1.5rem 2rem;
+  background: var(--offwhite);
+}
+.stat.is-feature { grid-column: span 2; }
+.stat.is-wide { grid-column: 1 / -1; }
+.stat-body { display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.stat-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  font-size: clamp(4rem, 7.5vw, 7.5rem);
+  line-height: 0.85;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.stat:hover .stat-num { color: var(--barca); }
+.stat-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.stat-ctx {
+  position: relative;
+  padding-left: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--navy) 60%, transparent);
+}
+.stat-ctx::before { /* grenat : petit trait */
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 0.55rem;
+  height: 1px;
+  background: var(--grenat);
+}
+.stat-media {
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  min-height: 12rem;
+  overflow: hidden;
+  border-radius: 0.6rem;
+  background:
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--navy) 7%, transparent) 0 1px, transparent 1px 12px),
+    color-mix(in srgb, var(--navy) 6%, var(--offwhite));
+}
+.stat-media .ph-label { position: absolute; inset: 0; display: grid; place-items: center; color: color-mix(in srgb, var(--navy) 50%, transparent); }
+.stat-media.is-loaded > .ph-label { display: none; }
+.stat-media > img,
+.stat-media > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: media-in 0.8s ease both;
+}
+
+@media (max-width: 991px) {
+  .stats-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat.is-feature { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) {
+  .stats-sheet { padding: 6rem 6vw 5rem; border-radius: 2rem 2rem 0 0; }
+  .stats-head { grid-template-columns: 1fr; margin-bottom: 4rem; }
+  .stats-goals-head { flex-direction: column; align-items: flex-start; }
+  .stat { min-height: 12rem; padding: 1.4rem 0.8rem 1.6rem; }
+  .stat.is-feature { flex-direction: column; }
+  .stat-media { min-height: 0; aspect-ratio: 16 / 10; flex: none; }
+}
+
+/* =========================================================
    MENU PLEIN ÉCRAN (js/menu.js) — d'après le menu de landonorris.com
    ========================================================= */
 .menu-btn {
