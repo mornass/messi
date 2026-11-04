@@ -35,30 +35,35 @@
   const isMobile = () => window.innerWidth <= 991;
 
   /* -------------------------------------------------------
-     PALETTES — une par club (couleurs officielles → teintes profondes)
+     PALETTES — une par club, à partir des couleurs du maillot
+     (couleurs officielles → teintes profondes pour les fonds)
        base   : fond le plus sombre (bords, vignette)
-       deep   : couleur du club assombrie (cœur des dégradés)
+       deep   : 1re couleur du club, assombrie (cœur des dégradés)
+       second : 2e couleur du club (second halo, bandes de tonte alternées)
        accent : traits fins, soulignés
+       spark  : 3e couleur / petits détails (points, traits courts)
        ink    : textes
        glow   : halo de l'image plein écran
      "site" = palette Barça du reste du site (avant le premier club).
      ------------------------------------------------------- */
   const PALETTES = {
-    site:      { base: "#0B1F3A", deep: "#0B1F3A", accent: "#A50044", ink: "#F6F5F0", glow: "#004D98" },
+    site:      { base: "#0B1F3A", deep: "#0B1F3A", second: "#0B1F3A", accent: "#A50044", spark: "#A50044", ink: "#F6F5F0", glow: "#004D98" },
     // rouge #D7001E · noir #111111
-    newells:   { base: "#0C0A0B", deep: "#6E0614", accent: "#D7001E", ink: "#F4F0EC", glow: "#8A0418" },
-    // bleu #004D98 · grenat #A50044
-    barca:     { base: "#061A36", deep: "#004D98", accent: "#A50044", ink: "#F6F5F0", glow: "#004D98" },
+    newells:   { base: "#0C0A0B", deep: "#6E0614", second: "#111111", accent: "#D7001E", spark: "#D7001E", ink: "#F4F0EC", glow: "#8A0418" },
+    // bleu #004D98 · grenat #A50044 · jaune #EDBB00
+    barca:     { base: "#061A36", deep: "#004D98", second: "#7A0033", accent: "#A50044", spark: "#EDBB00", ink: "#F6F5F0", glow: "#004D98" },
     // à valider quand les sections existeront
-    psg:       { base: "#050F24", deep: "#0A1F44", accent: "#DA291C", ink: "#F4F3F0", glow: "#1A3A73" },
-    miami:     { base: "#0E0C0D", deep: "#5E3243", accent: "#F5B6CD", ink: "#F7EFF2", glow: "#7A4358" },
-    argentine: { base: "#0D2238", deep: "#3F6F9C", accent: "#75AADB", ink: "#FFFFFF", glow: "#75AADB" },
+    // bleu marine #0A1F44 · rouge #DA291C
+    psg:       { base: "#050F24", deep: "#14336B", second: "#8E1A12", accent: "#DA291C", spark: "#DA291C", ink: "#F4F3F0", glow: "#1A3A73" },
+    // rose #F5B6CD · noir #111111
+    miami:     { base: "#0E0C0D", deep: "#6B3A4C", second: "#111111", accent: "#F5B6CD", spark: "#F5B6CD", ink: "#F7EFF2", glow: "#7A4358" },
+    // bleu ciel #75AADB · blanc #FFFFFF
+    argentine: { base: "#0D2238", deep: "#3F6F9C", second: "#C9D9EA", accent: "#75AADB", spark: "#FFFFFF", ink: "#FFFFFF", glow: "#75AADB" },
   };
-  const THEME_KEYS = ["base", "deep", "accent", "ink", "glow"];
-  const DIP_KEYS = ["deep", "glow"];   // teintes qui "plongent" dans le noir pendant la transition
+  const THEME_KEYS = ["base", "deep", "second", "accent", "spark", "ink", "glow"];
+  const DIP_KEYS = ["deep", "second", "glow"];   // teintes qui "plongent" dans le noir pendant la transition
   const THEME_DIP = "#08080A";
   const THEME_LAG = 0.8;                // lissage de la transition (s)
-
   let jerseyOwner = null;              // club qui contrôle le canvas du maillot
 
   const maxX = (wrapper) => Math.max(0, wrapper.scrollWidth - window.innerWidth);

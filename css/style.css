@@ -444,6 +444,8 @@ html.is-loading body { overflow: hidden; }
   --c-base: var(--navy);       /* fond le plus profond (bords, vignette) */
   --c-deep: var(--navy);       /* couleur du club, assombrie (cœur des dégradés) */
   --c-accent: var(--grenat);   /* traits fins, soulignés, points */
+  --c-second: var(--grenat);   /* 2e couleur du club (second halo, bandes) */
+  --c-spark: var(--grenat);    /* 3e couleur / petits détails (points, traits courts) */
   --c-ink: var(--offwhite);    /* textes et craie */
   --c-glow: var(--barca);      /* halo de l'image plein écran */
 
@@ -550,7 +552,10 @@ html.is-loading body { overflow: hidden; }
 /* ---------- A. Ouverture ---------- */
 .club-open {
   width: 100vw;
-  background: radial-gradient(ellipse 75% 85% at 50% 48%, var(--c-deep) 0%, var(--c-mid) 42%, var(--c-base) 100%);
+  background:
+    radial-gradient(ellipse 60% 65% at 82% 88%, color-mix(in srgb, var(--c-second) 55%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 55% at 12% 10%, color-mix(in srgb, var(--c-second) 30%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 75% 85% at 50% 48%, var(--c-deep) 0%, var(--c-mid) 42%, var(--c-base) 100%);
   overflow: hidden;
 }
 /* bandes de tonte (≈ vidéo qui s'ouvre depuis le centre dans l'original) */
@@ -561,8 +566,8 @@ html.is-loading body { overflow: hidden; }
   margin: 0 auto;
   background: repeating-linear-gradient(
     90deg,
-    color-mix(in srgb, var(--c-ink) 3%, transparent) 0 6.25vw,
-    color-mix(in srgb, var(--c-base) 28%, transparent) 6.25vw 12.5vw
+    color-mix(in srgb, var(--c-deep) 22%, transparent) 0 6.25vw,
+    color-mix(in srgb, var(--c-second) 26%, transparent) 6.25vw 12.5vw
   );
 }
 .club-pitch {
@@ -626,8 +631,8 @@ html.is-loading body { overflow: hidden; }
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
-  border: 1px solid var(--c-accent);
-  background: color-mix(in srgb, var(--c-accent) 55%, transparent);
+  border: 1px solid var(--c-spark);
+  background: color-mix(in srgb, var(--c-spark) 55%, transparent);
 }
 
 /* ---------- B. Galerie ---------- */
@@ -635,7 +640,9 @@ html.is-loading body { overflow: hidden; }
   width: 150vw;
   padding-left: 5rem;
   justify-content: flex-start;
-  background: linear-gradient(90deg, var(--c-base) 0%, var(--c-mid) 30%, color-mix(in srgb, var(--c-deep) 70%, var(--c-base)) 50%, var(--c-mid) 70%, var(--c-base) 100%);
+  background:
+    radial-gradient(ellipse 40% 70% at 72% 60%, color-mix(in srgb, var(--c-second) 45%, transparent) 0%, transparent 70%),
+    linear-gradient(90deg, var(--c-base) 0%, var(--c-mid) 25%, color-mix(in srgb, var(--c-deep) 70%, var(--c-base)) 45%, var(--c-mid) 75%, var(--c-base) 100%);
 }
 .club-gallery-title {
   position: absolute;
@@ -703,7 +710,7 @@ html.is-loading body { overflow: hidden; }
   flex: none;
   width: 1.1rem;
   height: 1px;
-  background: var(--c-accent);
+  background: linear-gradient(90deg, var(--c-accent), var(--c-spark));
   transform: translateY(-0.25em);
 }
 .club-photo figcaption b { color: var(--c-ink); font-weight: 600; }
@@ -773,6 +780,7 @@ html.is-loading body { overflow: hidden; }
 }
 .club-cover-media.ph {
   background:
+    radial-gradient(ellipse 55% 60% at 85% 85%, color-mix(in srgb, var(--c-second) 45%, transparent), transparent 70%),
     radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--c-glow) 70%, transparent), transparent 70%),
     var(--c-base);
 }
@@ -792,7 +800,7 @@ html.is-loading body { overflow: hidden; }
   pointer-events: none;
 }
 .club-cover-frame rect { stroke: color-mix(in srgb, var(--c-ink) 70%, transparent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.club-cover-frame path { stroke: var(--c-accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.club-cover-frame path { stroke: var(--c-spark); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 
 .club-info1 {
   position: relative;
@@ -861,7 +869,7 @@ html.is-loading body { overflow: hidden; }
   display: block;
   height: 1px;
   margin-top: 0.6rem;
-  background: linear-gradient(90deg, transparent, var(--c-accent));
+  background: linear-gradient(90deg, transparent, var(--c-accent) 65%, var(--c-spark));
 }
 .club-year {
   grid-row: 3;
