@@ -473,13 +473,22 @@
       gsap.to(state, { t, duration: THEME_LAG, ease: "power3.out", overwrite: true, onUpdate: apply });
     };
 
-    ScrollTrigger.create({
-      trigger: block,
-      start: "top bottom",
-      end: "bottom top",
-      onUpdate: update,
-      onRefresh: update,
-    });
+    // suivi direct du scroll (pas de bornes ScrollTrigger sur le bloc : calculées
+    // avant les espaces d'épinglage des clubs, elles s'arrêtaient après le 1er club
+    // et les couleurs restaient figées sur le Barça)
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const r = block.getBoundingClientRect();
+        if (r.bottom < -window.innerHeight || r.top > window.innerHeight * 2) return; // bloc loin de l'écran
+        update();
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.lenis?.on?.("scroll", onScroll);
+    ScrollTrigger.addEventListener("refresh", update);
     update();
   }
 
