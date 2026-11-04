@@ -815,131 +815,176 @@
     </div><!-- /.clubs -->
 
     <!-- =====================================================
-         3. LES 8 BALLONS D'OR — section épinglée (js/ballons-dor.js)
-            Au scroll : un point doré avance sur la ligne 2009 → 2023, l'année
-            défile, et à chaque sacre un trophée 3D (assets/3d/ballon-dor.glb)
-            apparaît sur la ligne et y reste ; la fiche de l'année (club, texte,
-            vidéo ou photo) change ; le grand « 8 » se remplit d'or.
+         3. LES 8 BALLONS D'OR — ambiance cérémonie (js/ballons-dor.js)
+            Palette propre : noir / anthracite, or #C9A24B, champagne #E8D3A2,
+            bleu marine seulement dans les profondeurs, grenat en détail.
+            Couches : dégradé · projecteurs · halo (souris) · particules · grain
+            Au scroll (épinglé) : le contour du « 8 » se dessine, puis les 8 cartes
+            apparaissent une par une et le « 8 » se remplit d'or.
          ===================================================== -->
     <section class="bdo" id="ballons-dor" data-bdo>
       <h2 class="sr-only">Les 8 Ballons d'Or de Lionel Messi : 2009, 2010, 2011, 2012, 2015, 2019, 2021 et 2023</h2>
 
-      <div class="bdo-head eyebrow">Ballon d'Or · 2009 — 2023</div>
-
-      <div class="bdo-intro" data-bdo-intro>
-        <h3 class="bdo-title">Huit<br />Ballons d'Or</h3>
-        <p class="bdo-lead">De 2009 à 2023, quinze ans au sommet. Faites défiler&nbsp;: les trophées apparaissent un par un.</p>
+      <!-- fond -->
+      <div class="bdo-bg" aria-hidden="true">
+        <div class="bdo-bg-prev" data-bdo-prev></div>
+        <div class="bdo-beams">
+          <span class="bdo-beam is-1"></span><span class="bdo-beam is-2"></span><span class="bdo-beam is-3"></span><span class="bdo-beam is-4"></span>
+        </div>
+        <div class="bdo-halo" data-bdo-halo></div>
+        <canvas class="bdo-particles" data-bdo-particles></canvas>
       </div>
 
-      <div class="bdo-stage" data-bdo-stage>
-        <div class="bdo-info">
-          <div class="bdo-year" data-bdo-year aria-hidden="true">2009</div>
-          <div class="bdo-cards">
-          <div class="bdo-card" data-bdo-card data-bdo-club="barca">
-            <span class="eyebrow bdo-num">Ballon d'Or n°1</span>
-            <span class="eyebrow bdo-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
-            <p class="bdo-text">Le sextuplé avec Guardiola&nbsp;: Liga, Coupe du Roi, Ligue des champions, Supercoupes et Mondial des clubs.</p>
-          </div>
-          <div class="bdo-card" data-bdo-card data-bdo-club="barca">
-            <span class="eyebrow bdo-num">Ballon d'Or n°2</span>
-            <span class="eyebrow bdo-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
-            <p class="bdo-text">47&nbsp;buts en une saison. Premier FIFA Ballon d'Or, à 23&nbsp;ans.</p>
-          </div>
-          <div class="bdo-card" data-bdo-card data-bdo-club="barca">
-            <span class="eyebrow bdo-num">Ballon d'Or n°3</span>
-            <span class="eyebrow bdo-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
-            <p class="bdo-text">Deuxième Ligue des champions en trois ans, avec un but en finale à Wembley.</p>
-          </div>
-          <div class="bdo-card" data-bdo-card data-bdo-club="barca">
-            <span class="eyebrow bdo-num">Ballon d'Or n°4</span>
-            <span class="eyebrow bdo-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
-            <p class="bdo-text">91&nbsp;buts en une année civile&nbsp;: record du monde.</p>
-          </div>
-          <div class="bdo-card" data-bdo-card data-bdo-club="barca">
-            <span class="eyebrow bdo-num">Ballon d'Or n°5</span>
-            <span class="eyebrow bdo-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
-            <p class="bdo-text">Le trio MSN et un deuxième triplé&nbsp;: Liga, Coupe du Roi, Ligue des champions.</p>
-          </div>
-          <div class="bdo-card" data-bdo-card data-bdo-club="barca">
-            <span class="eyebrow bdo-num">Ballon d'Or n°6</span>
-            <span class="eyebrow bdo-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
-            <p class="bdo-text">Soulier d'or européen, et un sixième Ballon d'Or&nbsp;: record absolu.</p>
-          </div>
-          <div class="bdo-card" data-bdo-card data-bdo-club="psg">
-            <span class="eyebrow bdo-num">Ballon d'Or n°7</span>
-            <span class="eyebrow bdo-club"><span class="bdo-club-dot"></span>Paris Saint-Germain</span>
-            <p class="bdo-text">Sacré à Paris, quelques mois après son premier titre avec l'Argentine&nbsp;: la Copa América.</p>
-          </div>
-          <div class="bdo-card" data-bdo-card data-bdo-club="miami">
-            <span class="eyebrow bdo-num">Ballon d'Or n°8</span>
-            <span class="eyebrow bdo-club"><span class="bdo-club-dot"></span>Inter Miami</span>
-            <p class="bdo-text">Champion du monde au Qatar, élu meilleur joueur du tournoi. Huitième sacre.</p>
-          </div>
-          </div>
-        </div>
-        <div class="bdo-media">
-          <div class="bdo-media-item ph" data-bdo-media data-media="assets/ballons-dor/bdo-2009.mp4" data-media-fallback="assets/ballons-dor/bdo-2009.jpg"><span class="ph-label">Vidéo ou photo · Ballon d'Or 2009</span></div>
-          <div class="bdo-media-item ph" data-bdo-media data-media="assets/ballons-dor/bdo-2010.mp4" data-media-fallback="assets/ballons-dor/bdo-2010.jpg"><span class="ph-label">Vidéo ou photo · Ballon d'Or 2010</span></div>
-          <div class="bdo-media-item ph" data-bdo-media data-media="assets/ballons-dor/bdo-2011.mp4" data-media-fallback="assets/ballons-dor/bdo-2011.jpg"><span class="ph-label">Vidéo ou photo · Ballon d'Or 2011</span></div>
-          <div class="bdo-media-item ph" data-bdo-media data-media="assets/ballons-dor/bdo-2012.mp4" data-media-fallback="assets/ballons-dor/bdo-2012.jpg"><span class="ph-label">Vidéo ou photo · Ballon d'Or 2012</span></div>
-          <div class="bdo-media-item ph" data-bdo-media data-media="assets/ballons-dor/bdo-2015.mp4" data-media-fallback="assets/ballons-dor/bdo-2015.jpg"><span class="ph-label">Vidéo ou photo · Ballon d'Or 2015</span></div>
-          <div class="bdo-media-item ph" data-bdo-media data-media="assets/ballons-dor/bdo-2019.mp4" data-media-fallback="assets/ballons-dor/bdo-2019.jpg"><span class="ph-label">Vidéo ou photo · Ballon d'Or 2019</span></div>
-          <div class="bdo-media-item ph" data-bdo-media data-media="assets/ballons-dor/bdo-2021.mp4" data-media-fallback="assets/ballons-dor/bdo-2021.jpg"><span class="ph-label">Vidéo ou photo · Ballon d'Or 2021</span></div>
-          <div class="bdo-media-item ph" data-bdo-media data-media="assets/ballons-dor/bdo-2023.mp4" data-media-fallback="assets/ballons-dor/bdo-2023.jpg"><span class="ph-label">Vidéo ou photo · Ballon d'Or 2023</span></div>
-        </div>
-        <div class="bdo-eight" aria-hidden="true">
-          <span class="bdo-eight-outline">8</span>
-          <span class="bdo-eight-fill" data-bdo-fill>8</span>
-        </div>
+      <!-- grand 8 : contour doré tracé, remplissage qui monte, reflet métallique -->
+      <svg class="bdo-eight" viewBox="-2 -132 95 140" aria-hidden="true" data-bdo-eight>
+        <defs>
+          <linearGradient id="bdo-gold" x1="0" y1="0" x2="0.35" y2="1">
+            <stop offset="0" stop-color="#F3E3B8" />
+            <stop offset="0.35" stop-color="#E8D3A2" />
+            <stop offset="0.6" stop-color="#C9A24B" />
+            <stop offset="1" stop-color="#5E4415" />
+          </linearGradient>
+          <linearGradient id="bdo-sheen" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#FFF6DD" stop-opacity="0" />
+            <stop offset="0.5" stop-color="#FFF6DD" stop-opacity="0.85" />
+            <stop offset="1" stop-color="#FFF6DD" stop-opacity="0" />
+          </linearGradient>
+          <clipPath id="bdo-eight-clip"><path d="M46 2.2Q33.2 2.2 23.8 -1.9Q14.5 -5.9 9.4 -14Q4.4 -22.1 4.4 -34.1Q4.4 -45.3 9 -52.2Q13.6 -59.1 20.6 -62.8Q13.1 -68.5 10 -75.3Q6.8 -82.1 6.8 -89.8Q6.8 -102.1 11.9 -110.1Q17.1 -118.1 26 -122.1Q35 -126 46 -126Q57.2 -126 66.1 -122.1Q75 -118.1 80.2 -110.1Q85.4 -102.1 85.4 -89.8Q85.4 -82 82.2 -75.2Q79.1 -68.4 71.6 -62.8Q78.7 -59.1 83.2 -52.2Q87.8 -45.3 87.8 -34.1Q87.8 -22.1 82.7 -14Q77.6 -5.9 68.2 -1.9Q58.8 2.2 46 2.2ZM46 -21.7Q51.5 -21.7 53.8 -25.7Q56 -29.8 56 -37Q56 -44.4 53.7 -48.2Q51.3 -52 46 -52Q40.8 -52 38.5 -48.2Q36.2 -44.4 36.2 -37Q36.2 -29.8 38.4 -25.7Q40.6 -21.7 46 -21.7ZM46 -74.2Q51.1 -74.2 53.4 -77.6Q55.8 -80.9 55.8 -88.1Q55.8 -95.5 53.5 -98.8Q51.3 -102.2 46 -102.2Q40.8 -102.2 38.6 -98.8Q36.4 -95.5 36.4 -88.1Q36.4 -80.9 38.7 -77.6Q41 -74.2 46 -74.2Z" /></clipPath>
+        </defs>
+        <g clip-path="url(#bdo-eight-clip)">
+          <rect class="bdo-eight-fill" data-bdo-fill x="-2" y="-132" width="95" height="140" fill="url(#bdo-gold)" />
+          <rect class="bdo-eight-sheen" x="-40" y="-132" width="33.25" height="140" fill="url(#bdo-sheen)" />
+        </g>
+        <path class="bdo-eight-stroke" data-bdo-stroke d="M46 2.2Q33.2 2.2 23.8 -1.9Q14.5 -5.9 9.4 -14Q4.4 -22.1 4.4 -34.1Q4.4 -45.3 9 -52.2Q13.6 -59.1 20.6 -62.8Q13.1 -68.5 10 -75.3Q6.8 -82.1 6.8 -89.8Q6.8 -102.1 11.9 -110.1Q17.1 -118.1 26 -122.1Q35 -126 46 -126Q57.2 -126 66.1 -122.1Q75 -118.1 80.2 -110.1Q85.4 -102.1 85.4 -89.8Q85.4 -82 82.2 -75.2Q79.1 -68.4 71.6 -62.8Q78.7 -59.1 83.2 -52.2Q87.8 -45.3 87.8 -34.1Q87.8 -22.1 82.7 -14Q77.6 -5.9 68.2 -1.9Q58.8 2.2 46 2.2ZM46 -21.7Q51.5 -21.7 53.8 -25.7Q56 -29.8 56 -37Q56 -44.4 53.7 -48.2Q51.3 -52 46 -52Q40.8 -52 38.5 -48.2Q36.2 -44.4 36.2 -37Q36.2 -29.8 38.4 -25.7Q40.6 -21.7 46 -21.7ZM46 -74.2Q51.1 -74.2 53.4 -77.6Q55.8 -80.9 55.8 -88.1Q55.8 -95.5 53.5 -98.8Q51.3 -102.2 46 -102.2Q40.8 -102.2 38.6 -98.8Q36.4 -95.5 36.4 -88.1Q36.4 -80.9 38.7 -77.6Q41 -74.2 46 -74.2Z" />
+      </svg>
+
+      <!-- colonne éditoriale -->
+      <div class="bdo-side">
+        <span class="bdo-kicker">Ballon d'Or · La cérémonie</span>
+        <p class="bdo-title" data-bdo-title><span class="is-light">Huit</span> <span class="is-heavy">Ballons d'Or</span></p>
+        <p class="bdo-lead" data-bdo-lead>De 2009 à 2023, quinze années au sommet du football mondial.</p>
+        <div class="bdo-count" data-bdo-count><span data-bdo-count-n>00</span><span class="bdo-count-sep">/</span><span>08</span></div>
+        <ol class="bdo-index"><li data-bdo-index>2009</li><li data-bdo-index>2010</li><li data-bdo-index>2011</li><li data-bdo-index>2012</li><li data-bdo-index>2015</li><li data-bdo-index>2019</li><li data-bdo-index>2021</li><li data-bdo-index>2023</li></ol>
+        <p class="bdo-outro" data-bdo-outro>Personne d'autre n'en a gagné plus de cinq.</p>
       </div>
 
-      <div class="bdo-timeline" data-bdo-timeline aria-hidden="true">
-        <span class="bdo-line"><span class="bdo-line-fill" data-bdo-progress></span></span>
-        <span class="bdo-tick" style="--i: 3.333" aria-hidden="true">2013</span>
-        <span class="bdo-tick" style="--i: 3.667" aria-hidden="true">2014</span>
-        <span class="bdo-tick" style="--i: 4.250" aria-hidden="true">2016</span>
-        <span class="bdo-tick" style="--i: 4.500" aria-hidden="true">2017</span>
-        <span class="bdo-tick" style="--i: 4.750" aria-hidden="true">2018</span>
-        <span class="bdo-tick" style="--i: 5.500" aria-hidden="true">2020<em>non décerné</em></span>
-        <span class="bdo-tick" style="--i: 6.500" aria-hidden="true">2022</span>
-        <div class="bdo-slot" data-bdo-slot style="--i: 0">
-          <img class="bdo-slot-img" data-bdo-slot-img src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
-          <span class="bdo-slot-year">2009</span>
+      <!-- les 8 cartes -->
+      <div class="bdo-cards" data-bdo-cards>
+        <div class="bdo-cards-track" data-bdo-track>
+          <article class="bdo-card" data-bdo-card data-bdo-club="barca" style="--i: 0">
+            <div class="bdo-card-in" data-bdo-tilt>
+              <header class="bdo-card-head">
+                <span class="bdo-card-num">N°01</span>
+                <span class="bdo-card-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
+              </header>
+              <div class="bdo-card-media" data-bdo-media data-media="assets/ballons-dor/bdo-2009.mp4" data-media-fallback="assets/ballons-dor/bdo-2009.jpg">
+                <img class="bdo-card-trophy" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="bdo-card-year">2009</div>
+              <p class="bdo-card-text">Le sextuplé avec Guardiola. Liga, Coupe du Roi, Ligue des champions.</p>
+              <span class="bdo-card-glare" aria-hidden="true"></span>
+            </div>
+          </article>
+          <article class="bdo-card" data-bdo-card data-bdo-club="barca" style="--i: 1">
+            <div class="bdo-card-in" data-bdo-tilt>
+              <header class="bdo-card-head">
+                <span class="bdo-card-num">N°02</span>
+                <span class="bdo-card-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
+              </header>
+              <div class="bdo-card-media" data-bdo-media data-media="assets/ballons-dor/bdo-2010.mp4" data-media-fallback="assets/ballons-dor/bdo-2010.jpg">
+                <img class="bdo-card-trophy" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="bdo-card-year">2010</div>
+              <p class="bdo-card-text">47&nbsp;buts en une saison. Premier FIFA Ballon d'Or, à 23&nbsp;ans.</p>
+              <span class="bdo-card-glare" aria-hidden="true"></span>
+            </div>
+          </article>
+          <article class="bdo-card" data-bdo-card data-bdo-club="barca" style="--i: 2">
+            <div class="bdo-card-in" data-bdo-tilt>
+              <header class="bdo-card-head">
+                <span class="bdo-card-num">N°03</span>
+                <span class="bdo-card-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
+              </header>
+              <div class="bdo-card-media" data-bdo-media data-media="assets/ballons-dor/bdo-2011.mp4" data-media-fallback="assets/ballons-dor/bdo-2011.jpg">
+                <img class="bdo-card-trophy" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="bdo-card-year">2011</div>
+              <p class="bdo-card-text">Deuxième Ligue des champions en trois ans, but en finale à Wembley.</p>
+              <span class="bdo-card-glare" aria-hidden="true"></span>
+            </div>
+          </article>
+          <article class="bdo-card" data-bdo-card data-bdo-club="barca" style="--i: 3">
+            <div class="bdo-card-in" data-bdo-tilt>
+              <header class="bdo-card-head">
+                <span class="bdo-card-num">N°04</span>
+                <span class="bdo-card-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
+              </header>
+              <div class="bdo-card-media" data-bdo-media data-media="assets/ballons-dor/bdo-2012.mp4" data-media-fallback="assets/ballons-dor/bdo-2012.jpg">
+                <img class="bdo-card-trophy" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="bdo-card-year">2012</div>
+              <p class="bdo-card-text">91&nbsp;buts en une année civile. Record du monde.</p>
+              <span class="bdo-card-glare" aria-hidden="true"></span>
+            </div>
+          </article>
+          <article class="bdo-card" data-bdo-card data-bdo-club="barca" style="--i: 4">
+            <div class="bdo-card-in" data-bdo-tilt>
+              <header class="bdo-card-head">
+                <span class="bdo-card-num">N°05</span>
+                <span class="bdo-card-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
+              </header>
+              <div class="bdo-card-media" data-bdo-media data-media="assets/ballons-dor/bdo-2015.mp4" data-media-fallback="assets/ballons-dor/bdo-2015.jpg">
+                <img class="bdo-card-trophy" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="bdo-card-year">2015</div>
+              <p class="bdo-card-text">Le trio MSN et un deuxième triplé historique.</p>
+              <span class="bdo-card-glare" aria-hidden="true"></span>
+            </div>
+          </article>
+          <article class="bdo-card" data-bdo-card data-bdo-club="barca" style="--i: 5">
+            <div class="bdo-card-in" data-bdo-tilt>
+              <header class="bdo-card-head">
+                <span class="bdo-card-num">N°06</span>
+                <span class="bdo-card-club"><span class="bdo-club-dot"></span>FC Barcelone</span>
+              </header>
+              <div class="bdo-card-media" data-bdo-media data-media="assets/ballons-dor/bdo-2019.mp4" data-media-fallback="assets/ballons-dor/bdo-2019.jpg">
+                <img class="bdo-card-trophy" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="bdo-card-year">2019</div>
+              <p class="bdo-card-text">Soulier d'or européen. Sixième sacre, record absolu.</p>
+              <span class="bdo-card-glare" aria-hidden="true"></span>
+            </div>
+          </article>
+          <article class="bdo-card" data-bdo-card data-bdo-club="psg" style="--i: 6">
+            <div class="bdo-card-in" data-bdo-tilt>
+              <header class="bdo-card-head">
+                <span class="bdo-card-num">N°07</span>
+                <span class="bdo-card-club"><span class="bdo-club-dot"></span>Paris Saint-Germain</span>
+              </header>
+              <div class="bdo-card-media" data-bdo-media data-media="assets/ballons-dor/bdo-2021.mp4" data-media-fallback="assets/ballons-dor/bdo-2021.jpg">
+                <img class="bdo-card-trophy" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="bdo-card-year">2021</div>
+              <p class="bdo-card-text">Sacré à Paris, après sa première Copa América.</p>
+              <span class="bdo-card-glare" aria-hidden="true"></span>
+            </div>
+          </article>
+          <article class="bdo-card" data-bdo-card data-bdo-club="miami" style="--i: 7">
+            <div class="bdo-card-in" data-bdo-tilt>
+              <header class="bdo-card-head">
+                <span class="bdo-card-num">N°08</span>
+                <span class="bdo-card-club"><span class="bdo-club-dot"></span>Inter Miami</span>
+              </header>
+              <div class="bdo-card-media" data-bdo-media data-media="assets/ballons-dor/bdo-2023.mp4" data-media-fallback="assets/ballons-dor/bdo-2023.jpg">
+                <img class="bdo-card-trophy" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="bdo-card-year">2023</div>
+              <p class="bdo-card-text">Champion du monde au Qatar. Huitième Ballon d'Or.</p>
+              <span class="bdo-card-glare" aria-hidden="true"></span>
+            </div>
+          </article>
         </div>
-        <div class="bdo-slot" data-bdo-slot style="--i: 1">
-          <img class="bdo-slot-img" data-bdo-slot-img src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
-          <span class="bdo-slot-year">2010</span>
-        </div>
-        <div class="bdo-slot" data-bdo-slot style="--i: 2">
-          <img class="bdo-slot-img" data-bdo-slot-img src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
-          <span class="bdo-slot-year">2011</span>
-        </div>
-        <div class="bdo-slot" data-bdo-slot style="--i: 3">
-          <img class="bdo-slot-img" data-bdo-slot-img src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
-          <span class="bdo-slot-year">2012</span>
-        </div>
-        <div class="bdo-slot" data-bdo-slot style="--i: 4">
-          <img class="bdo-slot-img" data-bdo-slot-img src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
-          <span class="bdo-slot-year">2015</span>
-        </div>
-        <div class="bdo-slot" data-bdo-slot style="--i: 5">
-          <img class="bdo-slot-img" data-bdo-slot-img src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
-          <span class="bdo-slot-year">2019</span>
-        </div>
-        <div class="bdo-slot" data-bdo-slot style="--i: 6">
-          <img class="bdo-slot-img" data-bdo-slot-img src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
-          <span class="bdo-slot-year">2021</span>
-        </div>
-        <div class="bdo-slot" data-bdo-slot style="--i: 7">
-          <img class="bdo-slot-img" data-bdo-slot-img src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
-          <span class="bdo-slot-year">2023</span>
-        </div>
-        <span class="bdo-marker" data-bdo-marker></span>
       </div>
-
-      <div class="bdo-canvas" data-bdo-canvas aria-hidden="true"></div>
-
-      <p class="bdo-outro" data-bdo-outro>Personne d'autre n'en a gagné plus de cinq.</p>
     </section>
 
   </main>
@@ -986,8 +1031,6 @@
   <div class="gl-background" data-gl="background" aria-hidden="true"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>

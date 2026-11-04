@@ -1,268 +1,251 @@
 /* =========================================================
-   3. LES 8 BALLONS D'OR — section épinglée (scrub)
-   Années exactes : 2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023.
-   Club le jour de la cérémonie : Barça (2009 → 2019), PSG (2021), Inter Miami (2023).
+   3. LES 8 BALLONS D'OR — ambiance cérémonie
+   Années : 2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023
+   (club le jour de la cérémonie : Barça, puis PSG en 2021, Inter Miami en 2023).
 
-   Au scroll :
-     - un point doré avance sur la ligne 2009 → 2023 et l'année DÉFILE
-       (2012 → 2013 → 2014 → 2015…) ;
-     - à chaque sacre, un trophée 3D apparaît sur la ligne (il tourne, se pose)
-       et y reste : à la fin, les 8 trophées sont alignés ;
-     - la fiche (n°, club, texte) et la vidéo / photo de l'année changent ;
-     - le grand « 8 » se remplit d'or, un huitième par trophée.
-   Trophée : assets/3d/ballon-dor.glb (tools/usdz-to-glb.py), chargé à l'approche ;
-   en attendant (ou sans WebGL) : photo du trophée (assets/3d/ballon-dor.png).
-   Médias : js/club-media.js (vidéo si présente, sinon photo).
+   - arrivée : la couleur de la section précédente s'efface vers le noir (scrub)
+   - section épinglée (scrub) :
+       1. le contour doré du grand « 8 » se dessine, le titre s'installe
+       2. les 8 cartes apparaissent une par une (grille 4 × 2 ; carrousel sur
+          mobile), le « 8 » se remplit d'or d'un huitième à chaque carte,
+          compteur 01 → 08 et index des années
+       3. phrase finale
+   - ambiance (seulement quand la section est à l'écran) : halo doré qui suit
+     la souris, particules dorées sur trois profondeurs (canvas 2D),
+     projecteurs et reflet métallique en CSS
+   - cartes : inclinaison 3D + reflet au survol (souris uniquement)
+   Médias des cartes : js/club-media.js (vidéo si présente, sinon photo).
    ========================================================= */
 (() => {
   const section = document.querySelector("[data-bdo]");
   if (!section || !window.gsap || !window.ScrollTrigger) return;
   gsap.registerPlugin(ScrollTrigger);
-  // les épinglages doivent être créés dans l'ordre de la page : les clubs d'abord
+  // épinglages créés dans l'ordre de la page : les clubs (après les polices) d'abord
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
     init();
     ScrollTrigger.refresh();
   });
 
   function init() {
-    const YEARS = [2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023];
-    const N = YEARS.length;
-    const D = { intro: 0.6, move: 1, appear: 0.55, hold: 0.55, outro: 0.9 };
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const N = 8;
 
-    const intro = section.querySelector("[data-bdo-intro]");
-    const stage = section.querySelector("[data-bdo-stage]");
-    const info = section.querySelector(".bdo-info");
-    const mediaBox = section.querySelector(".bdo-media");
-    const eight = section.querySelector(".bdo-eight");
-    const yearEl = section.querySelector("[data-bdo-year]");
-    const cards = Array.from(section.querySelectorAll("[data-bdo-card]"));
-    const medias = Array.from(section.querySelectorAll("[data-bdo-media]"));
-    const slots = Array.from(section.querySelectorAll("[data-bdo-slot]"));
-    const slotImgs = slots.map((s) => s.querySelector("[data-bdo-slot-img]"));
-    const marker = section.querySelector("[data-bdo-marker]");
-    const progress = section.querySelector("[data-bdo-progress]");
-    const lineEl = section.querySelector(".bdo-line");
+    const prev = section.querySelector("[data-bdo-prev]");
+    const halo = section.querySelector("[data-bdo-halo]");
+    const canvas = section.querySelector("[data-bdo-particles]");
+    const stroke = section.querySelector("[data-bdo-stroke]");
+    const fill = section.querySelector("[data-bdo-fill]");
+    const sheen = section.querySelector(".bdo-eight-sheen");
+    const title = section.querySelector("[data-bdo-title]");
+    const lead = section.querySelector("[data-bdo-lead]");
+    const countEl = section.querySelector("[data-bdo-count-n]");
+    const index = Array.from(section.querySelectorAll("[data-bdo-index]"));
     const outro = section.querySelector("[data-bdo-outro]");
+    const track = section.querySelector("[data-bdo-track]");
+    const cards = Array.from(section.querySelectorAll("[data-bdo-card]"));
+    const medias = cards.map((c) => c.querySelector("[data-bdo-media]"));
 
-    // ---------- état piloté par la timeline ----------
-    const st = { pos: 0, appear: new Array(N).fill(0), stage: 0, outro: 0 };
-    let shownYear = null;
-    let activeCard = -1;
-    let media = null;
-    const backOut = gsap.parseEase("back.out(1.8)");
-
-    // position (px, repère de la section) d'un emplacement, même fractionnaire
-    const slotX = (i) => {
-      const c = Math.min(i, N - 1);
-      const a = slots[Math.floor(c)].offsetLeft;
-      const b = slots[Math.ceil(c)].offsetLeft;
-      return a + (b - a) * (c - Math.floor(c));
+    /* ---------- 1. fondu depuis la section précédente ---------- */
+    const clubs = document.querySelector("[data-clubs]");
+    const setPrev = () => {
+      const c = clubs && getComputedStyle(clubs).getPropertyValue("--c-base").trim();
+      if (c) prev.style.setProperty("--prev", c);
     };
+    gsap.fromTo(prev, { opacity: 1 }, {
+      opacity: 0,
+      ease: "power1.out",
+      scrollTrigger: { trigger: section, start: "top bottom", end: "top 15%", scrub: true, onRefresh: setPrev, onEnter: setPrev },
+    });
 
-    function setCard(k) {
-      if (k === activeCard) return;
-      cards.forEach((c, i) => gsap.to(c, { autoAlpha: i === k ? 1 : 0, y: i === k ? 0 : 12, duration: 0.45, ease: "power2.out", overwrite: true }));
-      medias.forEach((m, i) => {
-        gsap.to(m, { opacity: i === k ? 1 : 0, duration: 0.6, ease: "power2.out", overwrite: true });
-        media?.setSlot(m, i === k);
+    /* ---------- état + rendu ---------- */
+    const st = { fill: 0, shown: 0 };
+    let media = null;
+    let inView = false;
+    let current = -1;
+
+    function setCurrent(k) {
+      if (k === current) return;
+      current = k;
+      countEl.textContent = String(Math.max(0, k + 1)).padStart(2, "0");
+      index.forEach((li, i) => {
+        li.classList.toggle("is-on", i <= k);
+        li.classList.toggle("is-current", i === k);
       });
-      slots.forEach((s, i) => s.classList.toggle("is-won", i <= k));
-      activeCard = k;
+      // une seule vidéo lue : celle de la dernière carte apparue
+      medias.forEach((m, i) => media?.setSlot(m, inView && i === k));
     }
+
+    const strokeLen = stroke.getTotalLength();
+    gsap.set(stroke, { strokeDasharray: strokeLen, strokeDashoffset: strokeLen });
+    gsap.set([title, lead], { autoAlpha: 0, y: 30 });
+    gsap.set(cards, { autoAlpha: 0, y: 70, rotateX: -18, scale: 0.94, transformOrigin: "50% 100%" });
 
     function render() {
-      const pos = st.pos;
-      // point doré + trait plein jusqu'à lui
-      const x = slotX(pos);
-      marker.style.left = `${x}px`;
-      progress.style.width = `${Math.max(0, x - lineEl.offsetLeft)}px`;
-
-      // l'année défile entre deux sacres (2012 → 2013 → 2014 → 2015)
-      const i0 = Math.floor(pos), f = pos - i0;
-      const y = i0 >= N - 1 ? YEARS[N - 1] : Math.floor(YEARS[i0] + (YEARS[i0 + 1] - YEARS[i0]) * f + 1e-6);
-      if (y !== shownYear) {
-        const up = shownYear === null || y > shownYear;
-        yearEl.textContent = y;
-        if (shownYear !== null) gsap.fromTo(yearEl, { yPercent: up ? 18 : -18, opacity: 0.4 }, { yPercent: 0, opacity: 1, duration: 0.35, ease: "power3.out", overwrite: true });
-        shownYear = y;
-      }
-
-      // fiche : celle du dernier trophée apparu ; atténuée pendant le trajet
-      const won = st.appear.reduce((n, a) => n + (a > 0.5 ? 1 : 0), 0);
-      setCard(won - 1);
-      const travel = i0 < N - 1 && f > 0 ? Math.sin(Math.PI * f) : 0;
-
-      // grand 8 : un huitième d'or par trophée
-      eight.style.setProperty("--fill", (st.appear.reduce((n, a) => n + a, 0) / N).toFixed(4));
-      // photo des trophées (tant que le modèle 3D n'est pas chargé)
-      slotImgs.forEach((img, i) => (img.style.transform = `translateX(-50%) scale(${Math.max(0, backOut(st.appear[i]))})`));
-
-      // intro → scène → conclusion
-      gsap.set(intro, { autoAlpha: 1 - st.stage, y: -30 * st.stage });
-      gsap.set(stage, { autoAlpha: st.stage });
-      gsap.set(info, { autoAlpha: (1 - 0.55 * travel) * (1 - st.outro) });
-      gsap.set(mediaBox, { autoAlpha: 1 - st.outro });
-      gsap.set(outro, { autoAlpha: st.outro, y: 24 * (1 - st.outro) });
+      fill.style.transform = `scaleY(${st.fill})`;
+      sheen.style.opacity = Math.min(1, st.fill * 2.5).toFixed(3);
+      setCurrent(Math.round(st.shown) - 1);
     }
 
-    // ---------- timeline principale ----------
-    const tl = gsap.timeline({
-      defaults: { ease: "none" },
-      scrollTrigger: {
-        trigger: section,
-        start: "top top",
-        end: () => `+=${Math.round(window.innerHeight * 0.7 * tl.duration())}`,
-        scrub: 1,
-        pin: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-      },
-      onUpdate: render,
+    /* ---------- 2. timeline épinglée (bureau / mobile) ---------- */
+    const mm = gsap.matchMedia();
+    let tl;
+    mm.add({ desk: "(min-width: 768px)", mob: "(max-width: 767px)" }, (ctx) => {
+      const mob = ctx.conditions.mob;
+      tl = gsap.timeline({
+        defaults: { ease: "power2.out" },
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: () => `+=${Math.round(window.innerHeight * 0.65 * tl.duration())}`,
+          scrub: 1,
+          pin: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+        onUpdate: render,
+      });
+      // 1. le contour du 8 se dessine, le titre s'installe
+      tl.to(stroke, { strokeDashoffset: 0, duration: 1.2, ease: "power1.inOut" }, 0);
+      tl.to([title, lead], { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.15 }, 0.15);
+      // 2. les cartes une par une ; le 8 se remplit d'un huitième à chaque carte
+      const cardW = () => cards[0].offsetWidth + parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || 0);
+      cards.forEach((card, i) => {
+        const at = 1.3 + i * 0.95;
+        if (mob && i > 0) tl.to(track, { x: () => -i * cardW(), duration: 0.6, ease: "power2.inOut" }, at - 0.15);
+        tl.to(card, { autoAlpha: 1, y: 0, rotateX: 0, scale: 1, duration: 0.6 }, at);
+        tl.to(st, { fill: (i + 1) / N, shown: i + 1, duration: 0.6, ease: "power1.inOut" }, at);
+        if (mob && i > 0) tl.to(cards[i - 1], { autoAlpha: 0.35, scale: 0.94, duration: 0.5 }, at);
+      });
+      // 3. phrase finale
+      tl.to(outro, { autoAlpha: 1, duration: 0.7 }, 1.3 + N * 0.95);
+      tl.to({}, { duration: 0.9 });
+      return () => gsap.set(track, { clearProps: "x" });
     });
-    tl.to({}, { duration: D.intro });
-    tl.to(st, { stage: 1, duration: 0.6, ease: "power2.inOut" });
-    YEARS.forEach((_, i) => {
-      if (i > 0) tl.to(st, { pos: i, duration: D.move, ease: "power1.inOut" });
-      // le trophée apparaît : proxy 0 → 1 (échelle, rotation, or du 8)
-      const proxy = { a: 0 };
-      tl.to(proxy, { a: 1, duration: D.appear, ease: "power2.out", onUpdate: () => (st.appear[i] = proxy.a) });
-      tl.to({}, { duration: D.hold });
-    });
-    tl.to(st, { outro: 1, duration: 0.6, ease: "power2.inOut" });
-    tl.to({}, { duration: D.outro });
 
-    // médias : chargés à l'approche ; vidéos lues seulement section à l'écran
-    let inView = false;
+    /* ---------- médias : chargés à l'approche ---------- */
     if (window.ClubMedia) {
       media = ClubMedia.attach(section);
       ScrollTrigger.create({ trigger: section, start: "top bottom+=100%", once: true, onEnter: () => media.load() });
     }
+    // ambiance et vidéos actives seulement quand la section est à l'écran
     ScrollTrigger.create({
       trigger: section,
       start: "top bottom",
       end: () => `+=${tl.scrollTrigger.end - tl.scrollTrigger.start + window.innerHeight * 2}`,
       onToggle: (self) => {
         inView = self.isActive;
-        medias.forEach((m, i) => media?.setSlot(m, inView && i === activeCard));
+        medias.forEach((m, i) => media?.setSlot(m, inView && i === current));
       },
     });
     render();
 
-    /* =========================================================
-       TROPHÉES 3D — 8 copies du même modèle (géométrie partagée),
-       une par emplacement ; chacune apparaît en tournant puis se pose,
-       avec une très lente rotation au repos.
-       ========================================================= */
-    const holder = section.querySelector("[data-bdo-canvas]");
-    const TROPHY_H = () => {
-      const w = window.innerWidth, h = window.innerHeight;
-      return w <= 767 ? Math.min(h * 0.075, w * 0.13) : Math.min(h * 0.16, ((w * 0.82) / 7) * 1.1);
-    };
-    const sizeImgs = () => slotImgs.forEach((img) => (img.style.height = `${TROPHY_H() * 1.02}px`));
-    sizeImgs();
-    if (!window.THREE || !THREE.GLTFLoader || !holder) {
-      window.addEventListener("resize", sizeImgs);
-      return;
+    /* ---------- 3. halo doré + particules ---------- */
+    const ctx2d = canvas.getContext("2d");
+    const mobile = () => window.innerWidth <= 767;
+    let W = 0, H = 0, dpr = 1, parts = [];
+    // sprite lumineux pré-rendu (un drawImage par particule : rapide)
+    const sprite = document.createElement("canvas");
+    sprite.width = sprite.height = 64;
+    {
+      const g = sprite.getContext("2d");
+      const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grd.addColorStop(0, "rgba(255, 240, 200, 1)");
+      grd.addColorStop(0.25, "rgba(232, 211, 162, 0.75)");
+      grd.addColorStop(1, "rgba(201, 162, 75, 0)");
+      g.fillStyle = grd;
+      g.fillRect(0, 0, 64, 64);
     }
-    const FRONT = -Math.PI / 2 + 0.45; // l'inscription regarde l'écran (3/4 face)
-
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
-    renderer.setClearColor(0x000000, 0);
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.55;
-    renderer.physicallyCorrectLights = true;
-    holder.appendChild(renderer.domElement);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(22, 1, 1, 20000);
-    if (THREE.RoomEnvironment) {
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
-    }
-    const key = new THREE.DirectionalLight(0xffe7b8, 3.2); // lumière chaude qui suit la souris
-    key.position.set(-1, 1.4, 1.2);
-    scene.add(key);
-    const rim = new THREE.DirectionalLight(0x6f8fd0, 1.2); // contre-jour bleuté (palette du site)
-    rim.position.set(1.2, 0.6, -1);
-    scene.add(rim);
-
-    const trophies = YEARS.map(() => {
-      const pivot = new THREE.Group();
-      const spinner = new THREE.Group();
-      pivot.add(spinner);
-      scene.add(pivot);
-      return { pivot, spinner };
-    });
-    let loaded = false;
-
-    function layout() {
-      const w = section.clientWidth, h = section.clientHeight;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.position.set(0, 0, h / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))); // 1 unité = 1 px en z = 0
-      camera.near = camera.position.z / 10;
-      camera.far = camera.position.z * 10;
-      camera.updateProjectionMatrix();
-      const H = TROPHY_H();
-      const ly = lineEl.offsetTop;
-      trophies.forEach((t, i) => {
-        t.pivot.scale.setScalar(H);
-        t.pivot.position.set(slotX(i) - w / 2, h / 2 - ly, 0);
+    function sizeCanvas() {
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      W = section.clientWidth;
+      H = section.clientHeight;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      const n = mobile() ? 50 : 110;
+      parts = Array.from({ length: n }, () => {
+        const z = Math.random(); // 0 = loin, 1 = près
+        return {
+          x: Math.random() * W,
+          y: Math.random() * H,
+          z,
+          r: 1.2 + z * z * 5.5,
+          a: 0.15 + z * 0.55,
+          vy: -(0.06 + z * 0.32),
+          sway: Math.random() * Math.PI * 2,
+          tw: 0.5 + Math.random() * 1.5,
+        };
       });
-      sizeImgs();
-      render();
     }
-    window.addEventListener("resize", layout);
-    ScrollTrigger.addEventListener("refresh", layout);
-    layout();
+    sizeCanvas();
+    window.addEventListener("resize", sizeCanvas);
 
-    // modèle chargé à l'approche de la section
-    ScrollTrigger.create({
-      trigger: section,
-      start: "top bottom+=100%",
-      once: true,
-      onEnter: () =>
-        new THREE.GLTFLoader().load(
-          "assets/3d/ballon-dor.glb",
-          (gltf) => {
-            gltf.scene.traverse((o) => {
-              if (!o.isMesh) return;
-              const m = o.material;
-              // or poli (teinte physique de l'or) et socle doré-gris, d'après la photo de référence
-              if (/gold/i.test(m.name)) { m.color.setRGB(1.0, 0.8, 0.33); m.roughness = 0.12; m.envMapIntensity = 2.8; }
-              if (/silver/i.test(m.name)) { m.color.setRGB(0.82, 0.64, 0.32); m.roughness = 0.3; m.envMapIntensity = 2.3; }
-            });
-            trophies.forEach((t, i) => t.spinner.add(i === 0 ? gltf.scene : gltf.scene.clone()));
-            loaded = true;
-            slotImgs.forEach((img) => gsap.to(img, { autoAlpha: 0, duration: 0.4 }));
-          },
-          undefined,
-          () => console.info("[ballons-dor] modèle 3D introuvable : les photos du trophée restent affichées")
-        ),
+    const pointer = { x: 0.62, y: 0.4, tx: 0.62, ty: 0.4 };
+    section.addEventListener("pointermove", (e) => {
+      if (e.pointerType !== "mouse") return;
+      const r = section.getBoundingClientRect();
+      pointer.tx = (e.clientX - r.left) / r.width;
+      pointer.ty = (e.clientY - r.top) / r.height;
+    }, { passive: true });
+
+    let time = 0;
+    gsap.ticker.add((t, dtMs) => {
+      if (!inView) return;
+      const dt = Math.min(dtMs, 50) / 16.67;
+      time += dt;
+      // sans souris (mobile) : le halo suit la carte active
+      if (!finePointer) {
+        const c = cards[Math.max(0, current)];
+        if (c) {
+          const r = c.getBoundingClientRect(), sr = section.getBoundingClientRect();
+          pointer.tx = (r.left + r.width / 2 - sr.left) / sr.width;
+          pointer.ty = (r.top + r.height * 0.3 - sr.top) / sr.height;
+        }
+      }
+      pointer.x += (pointer.tx - pointer.x) * 0.05 * dt;
+      pointer.y += (pointer.ty - pointer.y) * 0.05 * dt;
+      halo.style.transform = `translate3d(${pointer.x * W}px, ${pointer.y * H}px, 0)`;
+
+      // particules : montée lente + balancement, parallaxe selon la profondeur
+      const prog = tl ? tl.progress() : 0;
+      const mx = (pointer.x - 0.5) * 2, my = (pointer.y - 0.5) * 2;
+      ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx2d.clearRect(0, 0, W, H);
+      ctx2d.globalCompositeOperation = "lighter";
+      for (const p of parts) {
+        if (!reduce) {
+          p.y += p.vy * dt;
+          p.sway += 0.01 * dt;
+        }
+        if (p.y < -20) { p.y = H + 20; p.x = Math.random() * W; }
+        const px = p.x + Math.sin(p.sway) * 14 * p.z - mx * 26 * p.z;
+        const py = p.y - my * 16 * p.z - prog * 120 * p.z;
+        const yy = ((py % (H + 40)) + H + 40) % (H + 40) - 20;
+        const flick = 0.75 + 0.25 * Math.sin(time * 0.05 * p.tw + p.sway * 3);
+        ctx2d.globalAlpha = p.a * flick;
+        const s = p.r * 2;
+        ctx2d.drawImage(sprite, px - s, yy - s, s * 2, s * 2);
+      }
+      ctx2d.globalAlpha = 1;
     });
 
-    const mouse = { x: 0, tx: 0 };
-    window.addEventListener("mousemove", (e) => (mouse.tx = (e.clientX / window.innerWidth) * 2 - 1), { passive: true });
-
-    const appearEase = gsap.parseEase("back.out(1.6)");
-    let idle = 0;
-    gsap.ticker.add((t, dt) => {
-      if (!inView || !loaded) return;
-      idle += (dt / 1000) * 0.25;
-      mouse.x += (mouse.tx - mouse.x) * 0.05;
-      trophies.forEach((tr, i) => {
-        const a = st.appear[i];
-        tr.pivot.visible = a > 0.001;
-        if (!tr.pivot.visible) return;
-        tr.spinner.scale.setScalar(Math.max(0.001, appearEase(a)));
-        // apparition : un tour et demi en descendant se poser, puis lente rotation au repos
-        tr.spinner.rotation.y = FRONT + (1 - a) * Math.PI * 3 + idle + i * 0.35;
-        tr.spinner.position.y = (1 - a) * 0.35;
-        tr.pivot.rotation.y = mouse.x * 0.15;
+    /* ---------- 4. cartes : inclinaison 3D + reflet au survol ---------- */
+    if (finePointer && !reduce) {
+      section.querySelectorAll("[data-bdo-tilt]").forEach((el) => {
+        const rx = gsap.quickTo(el, "rotationX", { duration: 0.5, ease: "power3.out" });
+        const ry = gsap.quickTo(el, "rotationY", { duration: 0.5, ease: "power3.out" });
+        const z = gsap.quickTo(el, "z", { duration: 0.5, ease: "power3.out" });
+        el.addEventListener("pointermove", (e) => {
+          const r = el.getBoundingClientRect();
+          const u = (e.clientX - r.left) / r.width, v = (e.clientY - r.top) / r.height;
+          ry((u - 0.5) * 14);
+          rx(-(v - 0.5) * 12);
+          z(24);
+          el.style.setProperty("--gx", `${u * 100}%`);
+          el.style.setProperty("--gy", `${v * 100}%`);
+        });
+        el.addEventListener("pointerleave", () => { rx(0); ry(0); z(0); });
       });
-      key.position.set(-1 + mouse.x * 0.8, 1.4, 1.2);
-      renderer.render(scene, camera);
-    });
+    }
   }
 })();
