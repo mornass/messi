@@ -195,6 +195,51 @@ body {
   background: linear-gradient(90deg, transparent, var(--grenat), transparent);
 }
 
+/* ---------- Citation éditoriale + signature (au-dessus du portrait) ---------- */
+.hero-quote {
+  position: absolute;
+  z-index: 3;
+  top: 13vh;
+  left: var(--gap);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  pointer-events: none;
+  /* mode « différence » : foncé sur le fond clair, clair sur le nom géant → lisible partout */
+  color: var(--offwhite);
+  mix-blend-mode: difference;
+}
+.hero-quote-kicker { opacity: 0.75; }
+.hero-quote-text {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 85%;
+  font-size: clamp(1.6rem, 2.9vw, 3rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+.hero-quote-text .line { display: block; width: max-content; }
+.hero-quote-text strong { font-weight: 900; font-style: italic; }
+.hero-signature {
+  position: absolute;
+  z-index: 3;
+  right: calc(var(--gap) * 1.5);
+  bottom: 3.5vh;
+  width: min(28vw, 25rem);
+  height: auto;
+  overflow: visible;
+  color: var(--barca);
+  pointer-events: none;
+}
+.hero-signature path {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
 /* ---------- Carte "Prochain match" ---------- */
 .match-card {
   position: absolute;
@@ -1882,6 +1927,9 @@ html.is-loading .menu-btn { opacity: 0; pointer-events: none; }
 
 /* ---------- Mobile ---------- */
 @media (max-width: 767px) {
+  .hero-quote { top: 9vh; }
+  .hero-quote-text { font-size: 6.4vw; }
+  .hero-signature { width: 50vw; bottom: 5vh; right: var(--gap); }
   .hero-box { width: 86vw; height: 56vw; }
   .hero-msg { top: calc(50% - 28vw - 6.5rem); }
   .hero-tactic { width: 112vw; }
