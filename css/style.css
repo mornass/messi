@@ -900,18 +900,49 @@ html.is-loading body { overflow: hidden; }
   height: 100%;
   object-fit: cover;
 }
-/* lecteur YouTube : agrandi pour couvrir le panneau (16:9), sans interaction */
-.club-cover-media > .media-yt {
+/* vidéo intégrée (YouTube / Facebook) : image de couverture derrière, lecteur
+   agrandi ×1,2 pour couper titre et boutons, invisible jusqu'à la lecture */
+.media-embed {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.media-embed-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.media-embed-stage { position: absolute; inset: 0; }
+.media-embed-stage iframe {
   position: absolute;
   top: 50%;
   left: 50%;
   width: max(100%, 177.78vh);
   height: max(100%, 56.25vw);
   border: 0;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1.2);
   pointer-events: none;
-  animation: media-in 1.2s ease both;
 }
+/* Facebook : lecteur à largeur fixe, mis à l'échelle (--fb-scale) pour couvrir */
+.media-embed-stage.is-facebook .fb-video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1280px;
+  transform: translate(-50%, -50%) scale(var(--fb-scale, 1.2));
+  pointer-events: none;
+}
+.media-embed-stage.is-facebook iframe {
+  position: static;
+  width: 1280px;
+  height: 720px;
+  transform: none;
+}
+.media-embed-stage { opacity: 0; transition: opacity 0.9s ease; }
+.media-embed.is-playing .media-embed-stage { opacity: 1; }
 .club-cover-media.ph {
   background:
     radial-gradient(ellipse 55% 60% at 85% 85%, color-mix(in srgb, var(--c-second) 45%, transparent), transparent 70%),
