@@ -12,7 +12,13 @@
   const IMAGES = {
     base: "assets/img/messi-actuel.png",
     reveal: "assets/img/messi-jeune.png",
+    // cartes de profondeur (relief 2.5D) : clair = proche (visage), noir = loin
+    baseDepth: "assets/img/messi-actuel-depth.png",
+    revealDepth: "assets/img/messi-jeune-depth.png",
   };
+  // nom géant, derrière le portrait (dessiné dans le shader)
+  const NAME = { lines: ["LIONEL", "MESSI"], width: 0.96, slide: 0.32 };
+  const RELIEF = { amount: 0.022, shade: 1 };
 
   const COLORS = {
     navy: "#0B1F3A",
@@ -56,7 +62,7 @@
   // Couleurs du shader (équivalents palette Barça des COLOR_* de l'original)
   const SHADER_COLORS = {
     BACKGROUND: COLORS.offwhite,
-    OUTLINE: "#CED1D3",           // lignes topo sur blanc cassé
+    OUTLINE: "#BAC3CF",           // lignes topo sur blanc cassé (un peu plus présentes)
     CURSOR_BACKGROUND: COLORS.navy,
     CURSOR_FOREGROUND: "#102A4C", // 2e ton des bandes sous le curseur
     CURSOR_OUTLINE: COLORS.barca,
@@ -655,6 +661,18 @@
       uniform sampler2D tCursorEffect;
       uniform sampler2D tBase;
       uniform sampler2D tReveal;
+      uniform sampler2D tBaseDepth;
+      uniform sampler2D tRevealDepth;
+      uniform float uDepthAmt;       // amplitude du relief (uv)
+      uniform float uDepthShade;     // intensité de l'éclairage rasant
+      uniform sampler2D tName;       // « LIONEL / MESSI » (texture canvas, 2 lignes)
+      uniform float uNameW;          // largeur du nom / largeur de la boîte
+      uniform float uNameH;          // hauteur du nom / hauteur de la boîte
+      uniform float uNameY;          // centre vertical du nom (0 = bas, 1 = haut)
+      uniform float uNameShift;      // glissement des deux lignes (scroll)
+      uniform float uNameReveal;     // révélation à l'intro (-0.1 → 1.15)
+      uniform float uNameOpacity;
+      uniform vec3 COLOR_NAME;
       uniform float uBaseAspect;
       uniform float uRevealAspect;
       uniform float uImageHeight;
@@ -691,7 +709,7 @@
 
       // Position de l'image dans la boîte : ancrée en bas au repos,
       // puis zoom autour du visage qui glisse vers le centre de la boîte.
-      vec4 sampleImage(sampler2D tex, float aspect, vec2 local) {
+      vec2 imageUV(float aspect, vec2 local) {
         vec2 box = uBox.zw;
         float h0 = box.y * uImageHeight;
         vec2 size0 = vec2(h0 * aspect, h0);
@@ -702,9 +720,28 @@
 
         vec2 size = size0 * uZoom;
         vec2 center = face - (uFacePivot - 0.5) * size + uParallax;
-        vec2 iuv = (local - center) / size + 0.5;
-        if (iuv.x < 0.0 || iuv.x > 1.0 || iuv.y < 0.0 || iuv.y > 1.0) return vec4(0.0);
-        return texture2D(tex, iuv);
+        return (local - center) / size + 0.5;
+      }
+      bool outside(vec2 uv) { return uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0; }
+
+      // Relief 2.5D : décalage selon la profondeur (le visage bouge plus que les épaules)
+      // + éclairage rasant calculé sur la pente de la carte de profondeur
+      vec4 sampleRelief(sampler2D tex, sampler2D dep, float aspect, vec2 local, out float shade) {
+        shade = 1.0;
+        vec2 iuv = imageUV(aspect, local);
+        if (outside(iuv)) return vec4(0.0);
+        vec2 m = uMouseCoords * uDepthAmt;
+        float d = texture2D(dep, iuv).r;
+        vec2 uv2 = iuv + m * d;
+        d = texture2D(dep, uv2).r;          // 2e passe : plus stable sur les bords
+        uv2 = iuv + m * d;
+        if (outside(uv2)) return vec4(0.0);
+        float e = 0.008;
+        float dx = texture2D(dep, uv2 + vec2(e, 0.0)).r - texture2D(dep, uv2 - vec2(e, 0.0)).r;
+        float dy = texture2D(dep, uv2 + vec2(0.0, e)).r - texture2D(dep, uv2 - vec2(0.0, e)).r;
+        vec2 L = normalize(vec2(-0.55, 0.65) + uMouseCoords * 0.7);
+        shade = 1.0 + (dx * L.x + dy * L.y) * 2.4 * uDepthShade;
+        return texture2D(tex, uv2);
       }
 
       void main() {
@@ -763,9 +800,30 @@
 
         background = mix(background, cursorBackground, cursorEffect);
 
+        /* ---------- Nom géant « LIONEL / MESSI », derrière le portrait ---------- */
+        vec2 nuv = vec2((puv.x - 0.5) / uNameW + 0.5, (puv.y - uNameY) / uNameH + 0.5);
+        float topLine = step(0.5, nuv.y);                  // 1 = LIONEL, 0 = MESSI
+        float dir = topLine * 2.0 - 1.0;
+        nuv.x += dir * uNameShift                          // les lignes glissent en sens opposés
+               + (nuv.y - 0.5) * uMouseCoords.x * 0.06;    // inclinaison qui suit la souris
+        nuv.y += uMouseCoords.y * 0.012 * dir;
+        float nameA = 0.0;
+        if (!outside(nuv)) {
+          float inLine = fract(nuv.y * 2.0);               // 0 = bas de la ligne, 1 = haut
+          float rev = uNameReveal - topLine * 0.18;        // MESSI d'abord, puis LIONEL
+          float mask = 1.0 - smoothstep(rev - 0.12, rev, inLine);
+          nameA = texture2D(tName, nuv).a * mask * uNameOpacity;
+        }
+        // sous le curseur fluide, le nom passe en blanc cassé sur les bandes marine
+        vec3 nameCol = mix(COLOR_NAME, COLOR_BACKGROUND, cursorEffect);
+        background = mix(background, nameCol, nameA);
+
         /* ---------- Images ---------- */
-        vec4 imgBase = sampleImage(tBase, uBaseAspect, local);
-        vec4 imgReveal = sampleImage(tReveal, uRevealAspect, local);
+        float shadeBase, shadeReveal;
+        vec4 imgBase = sampleRelief(tBase, tBaseDepth, uBaseAspect, local, shadeBase);
+        vec4 imgReveal = sampleRelief(tReveal, tRevealDepth, uRevealAspect, local, shadeReveal);
+        imgBase.rgb *= shadeBase;
+        imgReveal.rgb *= shadeReveal;
 
         // le visage actuel passe en version "ombrée" sous le curseur (shadow diffuse de l'original)
         vec3 baseShadow = mix(imgBase.rgb * 0.42, COLOR_CURSOR_BACKGROUND, 0.25);
@@ -801,6 +859,18 @@
       tCursorEffect: { value: fluid.texture },
       tBase: { value: null },
       tReveal: { value: null },
+      tBaseDepth: { value: null },
+      tRevealDepth: { value: null },
+      uDepthAmt: { value: 0 },
+      uDepthShade: { value: RELIEF.shade },
+      tName: { value: null },
+      uNameW: { value: NAME.width },
+      uNameH: { value: 0.5 },
+      uNameY: { value: 0.5 },
+      uNameShift: { value: 0 },
+      uNameReveal: { value: -0.15 },
+      uNameOpacity: { value: 1 },
+      COLOR_NAME: { value: new THREE.Color(COLORS.navy) },
       uBaseAspect: { value: 0.75 },
       uRevealAspect: { value: 0.75 },
       uImageHeight: { value: LAYOUT.imageHeight },
@@ -874,6 +944,47 @@
       );
     });
   }
+
+  // Nom géant : deux lignes dessinées dans un canvas (Archivo 900 italique, condensé),
+  // utilisées comme texture par le shader. Renvoie la texture et son rapport largeur / hauteur.
+  function makeNameTexture() {
+    const W = 2048, H = 1024;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const g = c.getContext("2d");
+    const setFont = (px) => {
+      g.font = `italic 900 ${px}px Archivo, "Arial Narrow", sans-serif`;
+      if ("fontStretch" in g) g.fontStretch = "condensed";
+    };
+    // taille : la ligne la plus large occupe toute la largeur
+    setFont(400);
+    const widest = Math.max(...NAME.lines.map((t) => g.measureText(t).width));
+    const px = Math.min(400 * (W * 0.98) / widest, H * 0.62);
+    setFont(px);
+    g.fillStyle = "#fff";
+    g.textAlign = "center";
+    g.textBaseline = "alphabetic";
+    NAME.lines.forEach((t, i) => g.fillText(t, W / 2, H * (i === 0 ? 0.47 : 0.95)));
+    const tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.LinearFilter;
+    tex.generateMipmaps = false;
+    return { tex, aspect: W / H };
+  }
+
+  // carte de profondeur ; à défaut, texture noire (= pas de relief)
+  function loadDepth(url) {
+    const flat = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1, THREE.RGBAFormat);
+    flat.needsUpdate = true;
+    if (location.protocol === "file:") return Promise.resolve(flat);
+    return new Promise((resolve) => {
+      new THREE.TextureLoader().load(url, (tex) => {
+        tex.minFilter = THREE.LinearFilter;
+        tex.generateMipmaps = false;
+        resolve(tex);
+      }, undefined, () => resolve(flat));
+    });
+  }
+  let nameAspect = 2;
 
   // =========================================================
   // État du "plan" (renderPlane de l'original), piloté par GSAP
@@ -1027,8 +1138,11 @@
   function setupHighLines() {
     const Q = 0.6, B = 0.6, E = 0.15;
     // uniquement le hero : les sections ont leur propre gestion (sections.js)
+    const BLOCK = { barca: "var(--barca)", navy: "var(--navy)", offwhite: "var(--offwhite)", grenat: "var(--grenat)" };
     document.querySelectorAll("[data-hero] [data-anim-high]").forEach((el) => {
       const lines = el.querySelectorAll(".line");
+      // couleur du bloc : 2e valeur de data-anim-high (« right, barca »), bleu Barça par défaut
+      const blockColor = BLOCK[(el.getAttribute("data-anim-high") || "").split(",")[1]?.trim()] || BLOCK.barca;
       const tl = gsap.timeline({ paused: true });
       lines.forEach((line, i) => {
         line.style.position = "relative";
@@ -1037,7 +1151,7 @@
         block.className = "high-line-reveal";
         Object.assign(block.style, {
           position: "absolute", top: "0", left: "0", width: "100%", height: "100%",
-          backgroundColor: "var(--barca)", transformOrigin: "right center", zIndex: "5",
+          backgroundColor: blockColor, transformOrigin: "right center", zIndex: "5",
         });
         line.appendChild(block);
         gsap.set(block, { scaleX: 1 });
@@ -1050,6 +1164,32 @@
       } else {
         ScrollTrigger.create({ trigger: el, start: "top 90%", once: true, onEnter: () => tl.play() });
       }
+    });
+  }
+
+  // Signature « Leo Messi » : contour tracé lettre par lettre, puis remplissage
+  const signature = document.querySelector("[data-hero-signature]");
+  const sigParts = signature ? Array.from(signature.querySelectorAll("path")) : [];
+  sigParts.forEach((p) => {
+    const len = Math.ceil(p.getTotalLength()) + 2;
+    gsap.set(p, { strokeDasharray: `${len} ${len}`, strokeDashoffset: len, fillOpacity: 0 });
+  });
+  function drawSignature(delay) {
+    if (!sigParts.length) return;
+    gsap.timeline({ delay })
+      .to(sigParts, { strokeDashoffset: 0, duration: 0.9, stagger: 0.12, ease: "power1.inOut" })
+      .to(sigParts, { fillOpacity: 1, duration: 0.6, stagger: 0.05, ease: "power2.out" }, "-=0.3");
+  }
+
+  // Citation + signature : s'effacent pendant que le portrait rétrécit
+  function setupHeroTexts() {
+    const els = [document.querySelector("[data-hero-quote]"), signature].filter(Boolean);
+    if (!els.length) return;
+    gsap.to(els, {
+      autoAlpha: 0,
+      y: -40,
+      ease: "none",
+      scrollTrigger: { trigger: track, start: "top top", end: () => `+=${view.h * 0.4}`, scrub: true, invalidateOnRefresh: true },
     });
   }
 
@@ -1141,6 +1281,17 @@
         easedMouse.normalized.value.x * -LAYOUT.parallax * hover.reveal,
         easedMouse.normalized.value.y * -LAYOUT.parallax * 0.5 * hover.reveal * (1 - plane.progress)
       );
+      // nom géant : hauteur suivant la forme de la boîte, glissement + fondu au scroll
+      // écran vertical (mobile) : nom plus grand, qui déborde un peu, et remonté derrière la tête
+      const portrait = plane.width < plane.height;
+      const nameW = portrait ? 1.35 : NAME.width;
+      u.uNameW.value = nameW;
+      u.uNameY.value = portrait ? 0.66 : 0.5;
+      u.uNameH.value = nameW * (plane.width / plane.height) / nameAspect;
+      u.uNameShift.value = plane.progress * NAME.slide;
+      u.uNameOpacity.value = 1 - gsap.utils.clamp(0, 1, (plane.progress - 0.15) / 0.45);
+      // relief : plein au repos, s'efface quand le portrait rétrécit ou au survol
+      u.uDepthAmt.value = RELIEF.amount * (1 - plane.progress) * hover.reveal;
       renderer.setRenderTarget(null);
       renderer.clear();
       renderer.render(compScene, rawCamera);
@@ -1158,17 +1309,25 @@
   setupDraw();
   setupHelmetHover();
   setupScroll();
+  setupHeroTexts();
 
   Promise.all([
     loadImage(IMAGES.base, "base"),
     loadImage(IMAGES.reveal, "reveal"),
+    loadDepth(IMAGES.baseDepth),
+    loadDepth(IMAGES.revealDepth),
     document.fonts ? document.fonts.ready : Promise.resolve(),
-  ]).then(([base, reveal]) => {
+  ]).then(([base, reveal, baseDepth, revealDepth]) => {
     const u = compMaterial.uniforms;
     u.tBase.value = base.tex;
     u.uBaseAspect.value = base.aspect;
     u.tReveal.value = reveal.tex;
     u.uRevealAspect.value = reveal.aspect;
+    u.tBaseDepth.value = baseDepth;
+    u.tRevealDepth.value = revealDepth;
+    const name = makeNameTexture();
+    u.tName.value = name.tex;
+    nameAspect = name.aspect;
 
     measureMarquees();
     ScrollTrigger.refresh();
@@ -1185,11 +1344,14 @@
         { opacity: 0, scale: 1.08 },
         { opacity: 1, scale: 1, duration: 1.6, ease: "expo.out", clearProps: "transform" }
       );
+      // le nom monte ligne par ligne derrière le portrait
+      gsap.fromTo(compMaterial.uniforms.uNameReveal, { value: -0.15 }, { value: 1.2, duration: 1.8, ease: "power3.inOut", delay: 0.25 });
       gsap.delayedCall(0.45, () => {
         if (window.scrollY < 2) document.querySelector("[data-match-card]")?.classList.remove("is-hidden");
         highLines.forEach((tl) => tl.play());
         drawPitch();
       });
+      drawSignature(1.1);
     };
 
     if (window.Preloader) {
