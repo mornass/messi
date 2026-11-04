@@ -45,6 +45,15 @@
        trait ondulé grenat sous la section en cours ; images en bichromie,
        en couleur au survol du lien correspondant ; colonnes qui suivent la souris.
        ===================================================== -->
+  <!-- Barre du haut (js/hero-ui.js) : LM10, nom de la section en cours ;
+       sa couleur suit la section affichée. Le bouton menu est juste après. -->
+  <header class="topbar" data-topbar>
+    <a class="topbar-brand" href="#top" data-topbar-brand aria-label="Retour en haut">LM10</a>
+    <span class="topbar-section" aria-live="polite"><span class="topbar-label" data-topbar-label>Accueil</span></span>
+  </header>
+  <!-- Indicateur de scroll : progression dans la page, bord droit -->
+  <div class="scroll-indicator" data-scroll-indicator aria-hidden="true"><span class="scroll-indicator-bar" data-scroll-bar></span></div>
+
   <button class="menu-btn" type="button" data-menu-btn aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
     <span class="menu-btn-bar"></span><span class="menu-btn-bar"></span>
   </button>
@@ -182,10 +191,10 @@
             </svg>
 
             <div class="match-card-top">
-              <div class="eyebrow" data-anim-high><span class="line">Club actuel</span></div>
+              <div class="eyebrow" data-anim-high><span class="line" data-card="top">Club actuel</span></div>
             </div>
 
-            <a class="match-card-row is-1" href="#miami" data-club-jump="miami" aria-label="Club actuel : Inter Miami, voir la section">
+            <a class="match-card-row is-1" href="#miami" data-club-jump="miami" aria-label="Club actuel : Inter Miami, voir la section" data-card="link">
               <svg class="match-pitch" viewBox="0 0 94 80" fill="none" aria-hidden="true" data-pitch>
                 <rect x="3" y="3" width="88" height="74" rx="2" />
                 <path d="M47 3 V77" />
@@ -195,8 +204,8 @@
                 <circle class="match-pitch-ball" cx="47" cy="40" r="2" />
               </svg>
               <div class="match-card-eyebrows">
-                <div class="eyebrow" data-anim-high><span class="line">Inter Miami</span></div>
-                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line">MLS</span></div>
+                <div class="eyebrow" data-anim-high><span class="line" data-card="a1">Inter Miami</span></div>
+                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line" data-card="a2">MLS</span></div>
               </div>
             </a>
 
@@ -208,14 +217,30 @@
                 <path d="M11.5 4 V38 M20 4 V44 M28.5 4 V38" />
               </svg>
               <div class="match-card-eyebrows">
-                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line">Les débuts</span></div>
+                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line" data-card="b1">Les débuts</span></div>
                 <div class="eyebrow" data-anim-high>
-                  <span class="line">FC Barcelone</span>
-                  <span class="line">2004</span>
+                  <span class="line" data-card="b2">FC Barcelone</span>
+                  <span class="line" data-card="b3">2004</span>
                 </div>
               </div>
             </div>
           </aside>
+
+          <!-- Carte stats (data/hero.json) : 3 compteurs qui défilent à l'intro -->
+          <aside class="hero-stats is-hidden" data-hero-stats aria-label="Chiffres">
+            <span class="eyebrow hero-stats-title" data-stats-title>Au Barça</span>
+            <ul class="hero-stats-list" data-hero-stats-list>
+              <li><span class="hero-stats-n" data-n="672">672</span><span class="eyebrow eyebrow--muted">Buts</span></li>
+              <li><span class="hero-stats-n" data-n="778">778</span><span class="eyebrow eyebrow--muted">Matchs</span></li>
+              <li><span class="hero-stats-n" data-n="35">35</span><span class="eyebrow eyebrow--muted">Trophées</span></li>
+            </ul>
+          </aside>
+
+          <!-- Invitation à défiler : disparaît au premier mouvement -->
+          <div class="hero-scroll-cue" data-hero-cue aria-hidden="true">
+            <span class="hero-scroll-ball"></span>
+            <span class="eyebrow">Défiler</span>
+          </div>
 
           <!-- Citation éditoriale : lignes révélées en surlignage bleu (intro) -->
           <div class="hero-quote" data-hero-quote>
@@ -1248,5 +1273,6 @@
   <script src="js/ballons-dor.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/menu.js"></script>
+  <script src="js/hero-ui.js"></script>
 </body>
 </html>

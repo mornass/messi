@@ -1620,6 +1620,142 @@ html.is-loading body { overflow: hidden; }
 }
 
 /* =========================================================
+   BARRE DU HAUT + INDICATEUR DE SCROLL (js/hero-ui.js)
+   La couleur (--bar-ink) suit la section affichée ; masquée sur les clubs,
+   qui ont leur propre barre.
+   ========================================================= */
+.topbar {
+  --bar-ink: var(--navy);
+  position: fixed;
+  z-index: 55;
+  top: 1rem;
+  left: var(--gap);
+  right: calc(var(--gap) + 4.25rem);
+  height: 3.25rem;
+  display: flex;
+  align-items: center;
+  color: var(--bar-ink);
+  pointer-events: none;
+}
+.topbar-brand {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  font-stretch: 75%;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  color: inherit;
+  text-decoration: none;
+  pointer-events: auto;
+}
+.topbar-section {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  padding: 0.2em 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.topbar-label { display: block; }
+html.is-loading .topbar,
+html.is-loading .scroll-indicator { opacity: 0; }
+
+.scroll-indicator {
+  position: fixed;
+  z-index: 55;
+  top: 50%;
+  right: 0.55rem;
+  width: 2px;
+  height: 30vh;
+  margin-top: -15vh;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--offwhite) 22%, transparent);
+  mix-blend-mode: difference;   /* visible sur fond clair comme sombre */
+  pointer-events: none;
+  opacity: 0;
+}
+.scroll-indicator-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 15%;
+  border-radius: 2px;
+  background: var(--offwhite);
+  will-change: transform;
+}
+
+/* ---------- hero : carte stats ---------- */
+.hero-stats {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--gap) + 7.4375rem + 0.75rem);
+  bottom: var(--gap);
+  width: 7.4375rem;
+  padding: 0.6rem 0.7rem 0.8rem;
+  border: 1px solid var(--navy-muted);
+  border-radius: 6px;
+  background: var(--offwhite);
+  color: var(--navy);
+  clip-path: ellipse(100% 120% at 50% 0);
+  transition: clip-path 0.9s cubic-bezier(0.65, 0, 0.35, 1) 0.12s;
+}
+.hero-stats.is-hidden { clip-path: ellipse(100% 0% at 50% 0); }
+.hero-stats-title { font-size: 0.5625rem; color: var(--navy-muted); }
+.hero-stats-list { margin: 0.5rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
+.hero-stats-list li { display: flex; flex-direction: column; gap: 0.1rem; }
+.hero-stats-list li + li { padding-top: 0.5rem; border-top: 1px solid color-mix(in srgb, var(--navy) 15%, transparent); }
+.hero-stats-n {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 80%;
+  font-size: 1.7rem;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.hero-stats .eyebrow { font-size: 0.5625rem; }
+
+/* ---------- hero : invitation à défiler ---------- */
+.hero-scroll-cue {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 1.4rem;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--offwhite);
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+.hero-scroll-ball {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  animation: hero-bounce 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes hero-bounce {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(0.65rem); }
+  55% { transform: translateY(0.65rem) scaleY(0.82); }
+}
+
+@media (max-width: 767px) {
+  .topbar { top: 0.75rem; height: 2.9rem; right: calc(var(--gap) + 3.6rem); }
+  .topbar-section { display: none; }
+  .hero-stats { display: none; }
+  .scroll-indicator { right: 0.3rem; }
+}
+
+/* =========================================================
    MENU PLEIN ÉCRAN (js/menu.js) — d'après le menu de landonorris.com
    ========================================================= */
 .menu-btn {
@@ -1983,7 +2119,8 @@ html.is-loading .menu-btn { opacity: 0; pointer-events: none; }
 @media (max-width: 767px) {
   .hero-quote { top: 9vh; }
   .hero-quote-text { font-size: 6.4vw; }
-  .hero-signature { width: 50vw; bottom: 5vh; right: var(--gap); }
+  .hero-signature { width: 50vw; bottom: 8vh; right: var(--gap); }
+  .hero-scroll-cue { bottom: 0.6rem; }
   .hero-box { width: 86vw; height: 56vw; }
   .hero-msg { top: calc(50% - 28vw - 6.5rem); }
   .hero-tactic { width: 112vw; }
