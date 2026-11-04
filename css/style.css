@@ -448,6 +448,8 @@ html.is-loading body { overflow: hidden; }
   --c-spark: var(--grenat);    /* 3e couleur / petits détails (points, traits courts) */
   --c-ink: var(--offwhite);    /* textes et craie */
   --c-glow: var(--barca);      /* halo de l'image plein écran */
+  --c-stage: var(--navy);      /* cœur du fond du panneau d'ouverture (derrière le maillot) */
+  --c-name: var(--offwhite);   /* nom du club tracé derrière le maillot */
 
   --c-mid: color-mix(in srgb, var(--c-deep) 55%, var(--c-base));
   --chalk: color-mix(in srgb, var(--c-ink) 38%, transparent);
@@ -555,7 +557,7 @@ html.is-loading body { overflow: hidden; }
   background:
     radial-gradient(ellipse 60% 65% at 82% 88%, color-mix(in srgb, var(--c-second) 55%, transparent) 0%, transparent 70%),
     radial-gradient(ellipse 50% 55% at 12% 10%, color-mix(in srgb, var(--c-second) 30%, transparent) 0%, transparent 70%),
-    radial-gradient(ellipse 75% 85% at 50% 48%, var(--c-deep) 0%, var(--c-mid) 42%, var(--c-base) 100%);
+    radial-gradient(ellipse 75% 85% at 50% 48%, var(--c-stage) 0%, color-mix(in srgb, var(--c-stage) 55%, var(--c-base)) 42%, var(--c-base) 100%);
   overflow: hidden;
 }
 /* bandes de tonte (≈ vidéo qui s'ouvre depuis le centre dans l'original) */
@@ -606,6 +608,15 @@ html.is-loading body { overflow: hidden; }
   transform: translate(-50%, -50%);
 }
 .club-name { display: block; width: 100%; height: auto; overflow: visible; }
+/* nom en tracés (une lettre = un path) : très grand, derrière le maillot */
+.club-name-w.is-traced { width: 92vw; }
+.club-name path {
+  fill: var(--c-name);
+  stroke: var(--c-name);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
 .club-name text {
   font-family: var(--font-display);
   font-weight: 900;

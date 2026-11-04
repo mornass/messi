@@ -20,6 +20,8 @@
   const EXTRA_SCROLL = 2000;           // marge validée (original : 3000)
   const D = {
     paths: 1, pathsStagger: 0.1,       // zs, Bs
+    nameDraw: 1.6, nameStagger: 0.14,  // tracé lettre par lettre, lié au scroll
+    nameFill: 0.5,                     // remplissage une fois le contour fini
     jerseyIn: 0.8,                     // Vs
     nameOut: 0.5,                      // Gs
     digits: 0.8,                       // qs
@@ -44,24 +46,26 @@
        spark  : 3e couleur / petits détails (points, traits courts)
        ink    : textes
        glow   : halo de l'image plein écran
+       stage  : cœur du fond du panneau d'ouverture (derrière le maillot)
+       name   : couleur du nom tracé derrière le maillot
      "site" = palette Barça du reste du site (avant le premier club).
      ------------------------------------------------------- */
   const PALETTES = {
-    site:      { base: "#0B1F3A", deep: "#0B1F3A", second: "#0B1F3A", accent: "#A50044", spark: "#A50044", ink: "#F6F5F0", glow: "#004D98" },
+    site:      { stage: "#0B1F3A", name: "#F6F5F0", base: "#0B1F3A", deep: "#0B1F3A", second: "#0B1F3A", accent: "#A50044", spark: "#A50044", ink: "#F6F5F0", glow: "#004D98" },
     // rouge #D7001E · noir #111111
-    newells:   { base: "#0C0A0B", deep: "#6E0614", second: "#111111", accent: "#D7001E", spark: "#D7001E", ink: "#F4F0EC", glow: "#8A0418" },
+    newells:   { stage: "#1A1314", name: "#D7001E", base: "#0A0909", deep: "#6E0614", second: "#111111", accent: "#D7001E", spark: "#D7001E", ink: "#F4F0EC", glow: "#8A0418" },
     // bleu #004D98 · grenat #A50044 · jaune #EDBB00
-    barca:     { base: "#061A36", deep: "#004D98", second: "#7A0033", accent: "#A50044", spark: "#EDBB00", ink: "#F6F5F0", glow: "#004D98" },
+    barca:     { stage: "#004D98", name: "#F6F5F0", base: "#061A36", deep: "#004D98", second: "#7A0033", accent: "#A50044", spark: "#EDBB00", ink: "#F6F5F0", glow: "#004D98" },
     // à valider quand les sections existeront
     // bleu marine #0A1F44 · rouge #DA291C
-    psg:       { base: "#050F24", deep: "#14336B", second: "#8E1A12", accent: "#DA291C", spark: "#DA291C", ink: "#F4F3F0", glow: "#1A3A73" },
+    psg:       { stage: "#14336B", name: "#DA291C", base: "#050F24", deep: "#14336B", second: "#8E1A12", accent: "#DA291C", spark: "#DA291C", ink: "#F4F3F0", glow: "#1A3A73" },
     // rose #F5B6CD · noir #111111
-    miami:     { base: "#0E0C0D", deep: "#6B3A4C", second: "#111111", accent: "#F5B6CD", spark: "#F5B6CD", ink: "#F7EFF2", glow: "#7A4358" },
+    miami:     { stage: "#161214", name: "#F5B6CD", base: "#0E0C0D", deep: "#6B3A4C", second: "#111111", accent: "#F5B6CD", spark: "#F5B6CD", ink: "#F7EFF2", glow: "#7A4358" },
     // bleu ciel #75AADB · blanc #FFFFFF
-    argentine: { base: "#0D2238", deep: "#3F6F9C", second: "#C9D9EA", accent: "#75AADB", spark: "#FFFFFF", ink: "#FFFFFF", glow: "#75AADB" },
+    argentine: { stage: "#3F6F9C", name: "#FFFFFF", base: "#0D2238", deep: "#3F6F9C", second: "#C9D9EA", accent: "#75AADB", spark: "#FFFFFF", ink: "#FFFFFF", glow: "#75AADB" },
   };
-  const THEME_KEYS = ["base", "deep", "second", "accent", "spark", "ink", "glow"];
-  const DIP_KEYS = ["deep", "second", "glow"];   // teintes qui "plongent" dans le noir pendant la transition
+  const THEME_KEYS = ["base", "deep", "second", "accent", "spark", "ink", "glow", "stage", "name"];
+  const DIP_KEYS = ["deep", "second", "glow", "stage"];   // teintes qui "plongent" dans le noir pendant la transition
   const THEME_DIP = "#08080A";
   const THEME_LAG = 0.8;                // lissage de la transition (s)
   let jerseyOwner = null;              // club qui contrôle le canvas du maillot
@@ -125,10 +129,10 @@
       : { src: ds.jerseySrc || `assets/maillots/maillot-${id}.png` };
 
     // ---------- états initiaux ----------
+    // nom : une lettre = un <path> (vraie longueur) ; ancien <text> en repli
     nameParts.forEach((p) => {
-      // <text> n'a pas de getTotalLength : longueur large, le tracé reste progressif
-      const len = p.getTotalLength ? p.getTotalLength() : 3000;
-      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len, fillOpacity: 0 });
+      const len = p.getTotalLength ? Math.ceil(p.getTotalLength()) + 2 : 3000;
+      gsap.set(p, { strokeDasharray: `${len} ${len}`, strokeDashoffset: len, fillOpacity: 0 });
     });
     pitch.forEach((p) => {
       const len = p.getTotalLength();
@@ -199,10 +203,14 @@
       },
     });
 
-    tl.to(nameParts, { strokeDashoffset: 0, fillOpacity: 1, duration: D.paths, stagger: D.pathsStagger, ease: EASE_IO }, 0);
+    // nom : contour tracé lettre par lettre au fil du scroll (scrub → s'efface à l'envers
+    // quand on remonte), puis remplissage une fois le contour fini
+    const drawEnd = D.nameDraw + (nameParts.length - 1) * D.nameStagger;
+    tl.to(nameParts, { strokeDashoffset: 0, duration: D.nameDraw, stagger: D.nameStagger, ease: "power1.inOut" }, 0);
+    tl.to(nameParts, { fillOpacity: 1, duration: D.nameFill, stagger: 0.04, ease: EASE_OUT }, drawEnd);
     tl.to(pitch, { strokeDashoffset: 0, duration: D.paths * 1.2, ease: EASE_IO }, 0);
     tl.to(spot, { scale: 1, duration: 0.3, ease: "back.out(3)" }, D.paths);
-    const pathsComplete = D.paths + (nameParts.length - 1) * D.pathsStagger;
+    const pathsComplete = drawEnd + D.nameFill;
     tl.add("pathsComplete", pathsComplete);
     tl.to(jersey, { o: 1, duration: D.jerseyIn, ease: EASE_IO, onUpdate: applyJersey }, 0);
     tl.to(nameSvg, { opacity: 0, duration: D.nameOut, ease: EASE_OUT }, "pathsComplete+=0.5");
