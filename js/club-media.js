@@ -12,6 +12,7 @@
    API (utilisée par js/clubs.js) :
      const media = ClubMedia.attach(section)
      media.load() · media.setGallery(true|false) · media.setCover(true|false)
+     media.setSlot(élément, true|false)   (un seul emplacement)
    ========================================================= */
 window.ClubMedia = (() => {
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -102,6 +103,13 @@ window.ClubMedia = (() => {
       },
       setGallery: (on) => setRole(false, on),
       setCover: (on) => setRole(true, on),
+      // lecture d'un seul emplacement (ex. la fiche affichée dans la section Ballons d'Or)
+      setSlot(slot, on) {
+        const st = state.get(slot);
+        if (!st || st.want === on) return;
+        st.want = on;
+        sync(slot);
+      },
     };
   }
 

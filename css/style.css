@@ -950,158 +950,140 @@ html.is-loading body { overflow: hidden; }
 }
 
 /* =========================================================
-   3. LES 8 BALLONS D'OR — frise épinglée
-   --S : distance entre deux trophées · --ball-x : position du ballon
-   --line : hauteur de la ligne de craie (le ballon roule dessus)
+   3. LES 8 BALLONS D'OR — section épinglée (js/ballons-dor.js)
+   Haut : année qui défile, fiche (club, texte), vidéo/photo, grand « 8 »
+   Bas  : ligne 2009 → 2023, un emplacement par sacre (trophée 3D)
+   --line : hauteur de la ligne · --tl-left / --tl-step : place des 8 trophées
    ========================================================= */
 .bdo {
-  --S: 80vw;
-  --ball-x: 28vw;
-  --line: 70%;
-  --gold: #C9A13B;
+  --line: 84%;
+  --tl-left: 9vw;
+  --tl-step: calc((100vw - 2 * var(--tl-left)) / 7);
+  --gold: #D4A93C;
+  --gold-hi: #F3D27A;
   position: relative;
   z-index: 2;
   height: 100vh;
   overflow: hidden;
   color: var(--offwhite);
   background:
-    radial-gradient(ellipse 60% 70% at 28% 60%, color-mix(in srgb, var(--barca) 45%, transparent) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 90% 10%, color-mix(in srgb, var(--grenat) 18%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 45% at 50% 92%, color-mix(in srgb, var(--gold) 14%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 60% at 30% 35%, color-mix(in srgb, var(--barca) 40%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 45% at 92% 20%, color-mix(in srgb, var(--grenat) 16%, transparent) 0%, transparent 70%),
     linear-gradient(180deg, #081A33 0%, var(--navy) 60%, #071629 100%);
 }
-/* même grain argentique que les clubs */
-.bdo::after {
+.bdo::after { /* grain */
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: 6;
   pointer-events: none;
   opacity: 0.075;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.2 -.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 180px 180px;
 }
+.bdo-head {
+  position: absolute;
+  z-index: 5;
+  top: 1.5rem;
+  left: var(--gap);
+  color: color-mix(in srgb, var(--offwhite) 70%, transparent);
+}
 
-.bdo-hud {
+/* intro (avant le premier trophée) */
+.bdo-intro {
   position: absolute;
   z-index: 4;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 18%;
+  left: 6vw;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 1.5rem var(--gap);
-  color: color-mix(in srgb, var(--offwhite) 75%, transparent);
-  pointer-events: none;
+  flex-direction: column;
+  gap: 1.4rem;
+  max-width: 44rem;
 }
-.bdo-count {
-  display: flex;
-  align-items: flex-start;
+.bdo-title {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: 900;
   font-style: italic;
   font-stretch: 75%;
+  font-size: clamp(3.5rem, 10vw, 9.5rem);
   line-height: 0.85;
-  color: var(--offwhite);
+  text-transform: uppercase;
 }
-.bdo-count-win {
-  display: block;
-  height: 0.85em;
-  overflow: hidden;
-  font-size: clamp(4rem, 9vw, 8rem);
-}
-.bdo-count-roll { display: flex; flex-direction: column; will-change: transform; }
-.bdo-count-roll > span { display: block; height: 0.85em; padding-right: 0.05em; }
-.bdo-count-total {
-  margin-top: 0.3em;
-  font-size: clamp(1.25rem, 2.4vw, 2.2rem);
-  color: color-mix(in srgb, var(--offwhite) 45%, transparent);
-}
-.bdo-count.is-complete .bdo-count-win { color: var(--grenat); }
-
-.bdo-track {
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  bottom: 0;
-  left: var(--ball-x);
-  width: calc(9.5 * var(--S));
-  will-change: transform;
-}
-/* ligne de craie : pointillés sur toute la frise, trait plein jusqu'au ballon */
-.bdo-rail {
-  position: absolute;
-  top: var(--line);
-  left: calc(-1 * var(--ball-x));
-  right: 0;
-  height: 2px;
-  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--offwhite) 28%, transparent) 0 6px, transparent 6px 14px);
-}
-.bdo-rail-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: var(--ball-x);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--offwhite) 20%, transparent), color-mix(in srgb, var(--offwhite) 75%, transparent) 85%, var(--grenat));
-}
-
-.bdo-stop {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(var(--x) * var(--S));
-  width: var(--S);
-}
-.bdo-year {
-  position: absolute;
-  left: -5vw;
-  bottom: calc(100% - var(--line) + 0.6vw);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-stretch: 75%;
-  font-size: clamp(7rem, 26vw, 24rem);
-  line-height: 0.8;
-  letter-spacing: -0.02em;
-  color: rgba(246, 245, 240, 0);
-  -webkit-text-stroke: 2px color-mix(in srgb, var(--offwhite) 40%, transparent);
-  white-space: nowrap;
-}
-.bdo-body {
-  position: absolute;
-  top: calc(var(--line) + 2.2rem);
-  left: -4vw;
-  width: min(24rem, 30vw);
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-.bdo-num { color: color-mix(in srgb, var(--offwhite) 65%, transparent); }
-.bdo-text {
+.bdo-lead, .bdo-text {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
   font-stretch: 90%;
-  font-size: clamp(1.05rem, 1.6vw, 1.5rem);
-  line-height: 1.2;
+  font-size: clamp(1.05rem, 1.5vw, 1.45rem);
+  line-height: 1.25;
 }
-.bdo-photo {
+.bdo-lead { max-width: 28rem; color: color-mix(in srgb, var(--offwhite) 80%, transparent); }
+
+/* scène : fiche · média · grand 8 */
+.bdo-stage {
   position: absolute;
-  top: calc(var(--line) + 2.2rem);
-  left: 30vw;
-  width: 21vw;
-  margin: 0;
+  z-index: 3;
+  top: 11vh;
+  left: 6vw;
+  right: 4vw;
+  height: 52vh;
+  display: grid;
+  grid-template-columns: minmax(0, 34fr) minmax(0, 40fr) minmax(0, 20fr);
+  gap: 3vw;
+  align-items: center;
 }
-.bdo-photo-media {
+.bdo-info { display: flex; flex-direction: column; gap: 1.2rem; }
+.bdo-year {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  font-size: clamp(5rem, 13vw, 13rem);
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  will-change: transform;
+}
+.bdo-cards { display: grid; }
+.bdo-card {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 26rem;
+  opacity: 0;
+  visibility: hidden;
+}
+.bdo-num { color: var(--gold-hi); }
+.bdo-club { display: inline-flex; align-items: center; gap: 0.55em; color: color-mix(in srgb, var(--offwhite) 80%, transparent); }
+.bdo-club-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #004D98 50%, #A50044 50%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--offwhite) 40%, transparent);
+}
+.bdo-card[data-bdo-club="psg"] .bdo-club-dot { background: linear-gradient(90deg, #0A1F44 50%, #DA291C 50%); }
+.bdo-card[data-bdo-club="miami"] .bdo-club-dot { background: linear-gradient(90deg, #F5B6CD 50%, #111111 50%); }
+
+.bdo-media {
   position: relative;
   aspect-ratio: 16 / 10;
+  max-height: 100%;
+  border: 1px solid color-mix(in srgb, var(--offwhite) 25%, transparent);
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--offwhite) 30%, transparent);
+}
+.bdo-media-item {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
   background:
     repeating-linear-gradient(135deg, color-mix(in srgb, var(--offwhite) 7%, transparent) 0 1px, transparent 1px 12px),
     linear-gradient(160deg, color-mix(in srgb, var(--barca) 40%, var(--navy)), var(--navy));
 }
-.bdo-photo-media > img {
+.bdo-media-item > img,
+.bdo-media-item > video {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1109,110 +1091,159 @@ html.is-loading body { overflow: hidden; }
   object-fit: cover;
   animation: media-in 0.8s ease both;
 }
-.bdo-photo-media.is-loaded > .ph-label { display: none; }
-.bdo-photo-media .ph-label {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-}
+.bdo-media-item .ph-label { position: absolute; inset: 0; display: grid; place-items: center; }
+.bdo-media-item.is-loaded > .ph-label { display: none; }
 
-/* intro et conclusion */
-.bdo-title {
-  position: absolute;
-  left: 9vw;
-  bottom: calc(100% - var(--line) + 1.2vw);
-  margin: 0;
+/* grand 8 : contour + remplissage doré qui monte (--fill de 0 à 1) */
+.bdo-eight {
+  --fill: 0;
+  position: relative;
+  justify-self: end;
   font-family: var(--font-display);
   font-weight: 900;
   font-style: italic;
   font-stretch: 75%;
-  font-size: clamp(3.5rem, 9vw, 8.5rem);
-  line-height: 0.85;
-  text-transform: uppercase;
+  font-size: min(48vh, 22vw);
+  line-height: 0.8;
 }
-.is-intro .bdo-body { left: 9vw; }
-.bdo-outro {
+.bdo-eight-outline {
+  display: block;
+  color: transparent;
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--offwhite) 45%, transparent);
+}
+.bdo-eight-fill {
   position: absolute;
-  left: 9vw;
-  bottom: calc(100% - var(--line) + 1.5vw);
-  width: min(40rem, 50vw);
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-stretch: 80%;
-  font-size: clamp(2rem, 4.6vw, 4.2rem);
-  line-height: 0.95;
-  text-transform: uppercase;
+  inset: 0;
+  color: transparent;
+  background: linear-gradient(170deg, var(--gold-hi) 0%, var(--gold) 45%, #9A7424 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  clip-path: inset(calc((1 - var(--fill)) * 100%) 0 0 0);
 }
 
-/* années sans Ballon d'Or : petite graduation sur la ligne */
-.bdo-gap {
+/* ligne de temps */
+.bdo-timeline { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.bdo-line {
+  position: absolute;
+  top: var(--line);
+  left: calc(var(--tl-left) - 4vw);
+  right: calc(var(--tl-left) - 4vw);
+  height: 2px;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--offwhite) 28%, transparent) 0 6px, transparent 6px 14px);
+}
+.bdo-line-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--offwhite) 25%, transparent), var(--gold));
+}
+.bdo-marker {
+  position: absolute;
+  top: var(--line);
+  left: var(--tl-left);
+  width: 0.8rem;
+  height: 0.8rem;
+  margin: calc(-0.4rem + 1px) 0 0 -0.4rem;
+  border-radius: 50%;
+  background: var(--gold-hi);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 25%, transparent), 0 0 18px var(--gold);
+}
+.bdo-slot {
+  position: absolute;
+  top: var(--line);
+  left: calc(var(--tl-left) + var(--i) * var(--tl-step));
+}
+.bdo-slot-year {
+  position: absolute;
+  top: 0.9rem;
+  left: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--offwhite) 45%, transparent);
+  transition: color 0.4s ease;
+}
+.bdo-slot.is-won .bdo-slot-year { color: var(--gold-hi); }
+/* photo du trophée : affichée tant que le modèle 3D n'est pas chargé (ou sans WebGL) */
+.bdo-slot-img {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 15vh;
+  width: auto;
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) scale(0);
+}
+.bdo-tick {
   position: absolute;
   top: calc(var(--line) + 0.9rem);
-  left: calc(var(--x) * var(--S));
+  left: calc(var(--tl-left) + var(--i) * var(--tl-step));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: color-mix(in srgb, var(--offwhite) 40%, transparent);
+  color: color-mix(in srgb, var(--offwhite) 30%, transparent);
 }
-.bdo-gap::before {
+.bdo-tick::before {
   content: "";
   position: absolute;
   top: -0.9rem;
-  left: 50%;
   width: 1px;
-  height: 0.55rem;
+  height: 0.45rem;
   background: currentColor;
 }
-.bdo-gap em { font-style: normal; text-transform: uppercase; font-size: 0.5625rem; }
+.bdo-tick em { font-style: normal; font-size: 0.5rem; text-transform: uppercase; }
 
-/* ballon 3D (canvas) + ombre au sol */
-.bdo-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
+.bdo-canvas { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .bdo-canvas canvas { display: block; width: 100%; height: 100%; }
-.bdo-trophy-img {
+
+.bdo-outro {
   position: absolute;
-  z-index: 3;
-  top: var(--line);
-  left: var(--ball-x);
-  width: auto;
-  height: 36vh;
-  transform: translate(-50%, -100%);
-  pointer-events: none;
-}
-.bdo-shadow {
-  position: absolute;
-  z-index: 2;
-  top: var(--line);
-  left: var(--ball-x);
-  width: 20vh;
-  height: 3vh;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent);
-  pointer-events: none;
+  z-index: 4;
+  top: 22%;
+  left: 6vw;
+  width: min(44rem, 55vw);
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 80%;
+  font-size: clamp(2.2rem, 5vw, 4.6rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  opacity: 0;
+  visibility: hidden;
 }
 
 @media (max-width: 767px) {
-  .bdo { --S: 100vw; --ball-x: 22vw; --line: 56%; }
-  .bdo-year { font-size: 34vw; left: -8vw; }
-  .bdo-body { left: -14vw; width: 82vw; }
-  .bdo-photo { left: -14vw; top: calc(var(--line) + 9.5rem); width: 60vw; }
-  .bdo-title { left: 12vw; font-size: 13vw; }
-  .is-intro .bdo-body { left: -14vw; }
-  .bdo-outro { left: 12vw; width: 70vw; font-size: 8vw; }
-  .bdo-shadow { width: 14vh; }
+  .bdo { --line: 86%; --tl-left: 7vw; }
+  .bdo-stage {
+    top: 9vh;
+    left: 6vw;
+    right: 6vw;
+    height: 62vh;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto 1fr;
+    gap: 1.2rem 4vw;
+    align-items: start;
+  }
+  .bdo-info { grid-column: 1; grid-row: 1; }
+  .bdo-eight { grid-column: 2; grid-row: 1; font-size: 30vw; }
+  .bdo-media { grid-column: 1 / -1; grid-row: 2; align-self: start; width: 100%; }
+  .bdo-year { font-size: 22vw; }
+  .bdo-slot-img { height: 7vh; }
+  .bdo-slot-year, .bdo-tick { font-size: 0.5rem; }
+  .bdo-tick { display: none; }
+  .bdo-outro { width: 88vw; top: 14%; font-size: 9vw; }
+  .bdo-intro { left: 6vw; right: 6vw; }
 }
 
 /* =========================================================
