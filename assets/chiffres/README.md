@@ -10,3 +10,7 @@ si elle existe, sinon la photo ; sans fichier, le placeholder reste affiché).
 
 Formats : photo JPG ~1600 × 1000 px ; vidéo MP4 (H.264), 5 à 10 s, sans son,
 en boucle, < 4 Mo (commande ffmpeg dans assets/clubs/README.md).
+
+En place : `chiffres-91.jpg` (2012, maillot Qatar Foundation) et `chiffres-35.jpg`
+(Berlin 2015, la Ligue des champions en main), mêmes photos que les cartes
+Ballons d'Or 2012 et 2015. Cadrage réglé par `data-media-pos` dans index.html.
