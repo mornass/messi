@@ -608,12 +608,15 @@ html.is-loading body { overflow: hidden; }
   transform: translate(-50%, -50%);
 }
 .club-name { display: block; width: 100%; height: auto; overflow: visible; }
-/* nom en tracés (une lettre = un path) : très grand, derrière le maillot */
-.club-name-w.is-traced { width: 92vw; }
+/* nom manuscrit en tracés : très grand, derrière le maillot.
+   Largeur = 92vw, sauf si le dessin est haut (PSG sur 3 lignes) : hauteur max ≈ 80vh.
+   --name-ar (largeur / hauteur du dessin) et --name-stroke sont posés sur chaque <svg>. */
+.club-name-w.is-traced { width: auto; }
+.club-name-w.is-traced .club-name { width: min(92vw, calc(80vh * var(--name-ar, 3))); }
 .club-name path {
   fill: var(--c-name);
   stroke: var(--c-name);
-  stroke-width: 1.4;
+  stroke-width: var(--name-stroke, 1.4);
   stroke-linejoin: round;
   stroke-linecap: round;
 }
