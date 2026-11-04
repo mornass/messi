@@ -8,6 +8,8 @@
    - vidéos : sans son, en boucle, en ligne (iOS), lues seulement quand le club
      est à l'écran ; en pause sinon ("réduire les animations" : jamais lues)
    - fichier absent : le placeholder reste affiché (fallback essayé d'abord)
+   - data-media-youtube="ID" : lecteur YouTube intégré (youtube-nocookie, muet,
+     en boucle, sans contrôles), prioritaire ; data-media sert alors de repli
 
    API (utilisée par js/clubs.js) :
      const media = ClubMedia.attach(section)
@@ -59,6 +61,32 @@ window.ClubMedia = (() => {
     });
   }
 
+  // Lecteur YouTube intégré : muet, en boucle, sans contrôles ; piloté par postMessage
+  function mountYoutube(slot, id) {
+    return new Promise((resolve) => {
+      const f = document.createElement("iframe");
+      const q = new URLSearchParams({
+        autoplay: "0", mute: "1", controls: "0", loop: "1", playlist: id, playsinline: "1",
+        rel: "0", modestbranding: "1", iv_load_policy: "3", disablekb: "1", enablejsapi: "1",
+        origin: location.origin,
+      });
+      f.className = "media-yt";
+      f.src = `https://www.youtube-nocookie.com/embed/${id}?${q}`;
+      f.title = "Vidéo";
+      f.allow = "autoplay; encrypted-media; picture-in-picture";
+      f.setAttribute("tabindex", "-1");
+      f.setAttribute("aria-hidden", "true");
+      const timer = setTimeout(() => { f.remove(); resolve(null); }, 12000);
+      f.addEventListener("load", () => {
+        clearTimeout(timer);
+        // laisse le lecteur s'initialiser avant d'accepter des commandes
+        setTimeout(() => resolve(f), 700);
+      }, { once: true });
+      slot.appendChild(f);
+    });
+  }
+  const ytCommand = (f, func) => f.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args: [] }), "*");
+
   function attach(section) {
     const slots = Array.from(section.querySelectorAll("[data-media]"));
     const state = new Map(); // slot → { el, video, want }
@@ -68,11 +96,27 @@ window.ClubMedia = (() => {
     const sync = (slot) => {
       const st = state.get(slot);
       if (!st.video || !st.el) return;
+      if (st.yt) {
+        if (st.want && !reduce) { ytCommand(st.el, "mute"); ytCommand(st.el, "playVideo"); }
+        else ytCommand(st.el, "pauseVideo");
+        return;
+      }
       if (st.want && !reduce) st.el.play().catch(() => {});
       else st.el.pause();
     };
 
     async function loadSlot(slot) {
+      const yt = slot.dataset.mediaYoutube;
+      if (yt) {
+        const f = await mountYoutube(slot, yt);
+        if (f) {
+          const st = state.get(slot);
+          st.el = f; st.video = true; st.yt = true;
+          slot.classList.add("is-loaded");
+          sync(slot);
+          return;
+        }
+      }
       const url = slot.dataset.media;
       let el = isVideo(url) ? await mountVideo(slot, url) : await mountImage(slot, url);
       const fb = slot.dataset.mediaFallback;
