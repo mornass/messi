@@ -45,6 +45,15 @@
        trait ondulé grenat sous la section en cours ; images en bichromie,
        en couleur au survol du lien correspondant ; colonnes qui suivent la souris.
        ===================================================== -->
+  <!-- Barre du haut (js/hero-ui.js) : LM10, nom de la section en cours ;
+       sa couleur suit la section affichée. Le bouton menu est juste après. -->
+  <header class="topbar" data-topbar>
+    <a class="topbar-brand" href="#top" data-topbar-brand aria-label="Retour en haut">LM10</a>
+    <span class="topbar-section" aria-live="polite"><span class="topbar-label" data-topbar-label>Accueil</span></span>
+  </header>
+  <!-- Indicateur de scroll : progression dans la page, bord droit -->
+  <div class="scroll-indicator" data-scroll-indicator aria-hidden="true"><span class="scroll-indicator-bar" data-scroll-bar></span></div>
+
   <button class="menu-btn" type="button" data-menu-btn aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
     <span class="menu-btn-bar"></span><span class="menu-btn-bar"></span>
   </button>
@@ -182,10 +191,10 @@
             </svg>
 
             <div class="match-card-top">
-              <div class="eyebrow" data-anim-high><span class="line">Club actuel</span></div>
+              <div class="eyebrow" data-anim-high><span class="line" data-card="top">Club actuel</span></div>
             </div>
 
-            <a class="match-card-row is-1" href="#miami" data-club-jump="miami" aria-label="Club actuel : Inter Miami, voir la section">
+            <a class="match-card-row is-1" href="#miami" data-club-jump="miami" aria-label="Club actuel : Inter Miami, voir la section" data-card="link">
               <svg class="match-pitch" viewBox="0 0 94 80" fill="none" aria-hidden="true" data-pitch>
                 <rect x="3" y="3" width="88" height="74" rx="2" />
                 <path d="M47 3 V77" />
@@ -195,8 +204,8 @@
                 <circle class="match-pitch-ball" cx="47" cy="40" r="2" />
               </svg>
               <div class="match-card-eyebrows">
-                <div class="eyebrow" data-anim-high><span class="line">Inter Miami</span></div>
-                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line">MLS</span></div>
+                <div class="eyebrow" data-anim-high><span class="line" data-card="a1">Inter Miami</span></div>
+                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line" data-card="a2">MLS</span></div>
               </div>
             </a>
 
@@ -208,14 +217,30 @@
                 <path d="M11.5 4 V38 M20 4 V44 M28.5 4 V38" />
               </svg>
               <div class="match-card-eyebrows">
-                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line">Les débuts</span></div>
+                <div class="eyebrow eyebrow--muted" data-anim-high><span class="line" data-card="b1">Les débuts</span></div>
                 <div class="eyebrow" data-anim-high>
-                  <span class="line">FC Barcelone</span>
-                  <span class="line">2004</span>
+                  <span class="line" data-card="b2">FC Barcelone</span>
+                  <span class="line" data-card="b3">2004</span>
                 </div>
               </div>
             </div>
           </aside>
+
+          <!-- Carte stats (data/hero.json) : 3 compteurs qui défilent à l'intro -->
+          <aside class="hero-stats is-hidden" data-hero-stats aria-label="Chiffres">
+            <span class="eyebrow hero-stats-title" data-stats-title>Au Barça</span>
+            <ul class="hero-stats-list" data-hero-stats-list>
+              <li><span class="hero-stats-n" data-n="672">672</span><span class="eyebrow eyebrow--muted">Buts</span></li>
+              <li><span class="hero-stats-n" data-n="778">778</span><span class="eyebrow eyebrow--muted">Matchs</span></li>
+              <li><span class="hero-stats-n" data-n="35">35</span><span class="eyebrow eyebrow--muted">Trophées</span></li>
+            </ul>
+          </aside>
+
+          <!-- Invitation à défiler : disparaît au premier mouvement -->
+          <div class="hero-scroll-cue" data-hero-cue aria-hidden="true">
+            <span class="hero-scroll-ball"></span>
+            <span class="eyebrow">Défiler</span>
+          </div>
 
           <!-- Citation éditoriale : lignes révélées en surlignage bleu (intro) -->
           <div class="hero-quote" data-hero-quote>
@@ -368,13 +393,13 @@
             <div class="club-slot is-2">
               <figure class="club-photo" data-club-photo>
                 <div class="club-photo-media ph" data-media="assets/clubs/newells/newells-photo-3.jpg"><span class="ph-label">Photo · Máquina del 87</span></div>
-                <figcaption class="eyebrow"><b>Avant 1994</b> Grandoli, le club du quartier, où l'emmène sa grand-mère Celia</figcaption>
+                <figcaption class="eyebrow"><b>Enfance</b> En rouge et noir, avec les jeunes de Newell's</figcaption>
               </figure>
             </div>
             <div class="club-slot is-2">
               <figure class="club-photo" data-club-photo>
-                <div class="club-photo-media ph is-video" data-media="assets/clubs/newells/newells-video-1.mp4"><span class="ph-label">Vidéo · Coloso del Parque</span></div>
-                <figcaption class="eyebrow"><b>Mi-temps</b> Jongles sur la pelouse du Coloso, pendant la pause des pros</figcaption>
+                <div class="club-photo-media ph" data-media="assets/clubs/newells/newells-photo-4.jpg"><span class="ph-label">Photo · Coloso del Parque</span></div>
+                <figcaption class="eyebrow"><b>Coloso del Parque</b> En tribune, sous le maillot de Newell's</figcaption>
               </figure>
             </div>
           </div>
@@ -383,7 +408,7 @@
         <!-- C. IMMERSION : image révélée plein écran + textes -->
         <div class="club-panel club-immersion" data-club-immersion>
           <div class="club-cover" data-club-cover>
-            <div class="club-cover-media ph" data-media-youtube="koQqldNq1uc" data-media="assets/clubs/newells/newells-cover.mp4" data-media-fallback="assets/clubs/newells/newells-cover.jpg" data-media-role="cover">
+            <div class="club-cover-media ph" data-media-youtube="koQqldNq1uc" data-media-poster="assets/clubs/newells/newells-photo-1.jpg" data-media="assets/clubs/newells/newells-cover.mp4" data-media-fallback="assets/clubs/newells/newells-cover.jpg" data-media-role="cover">
               <svg class="ph-pitch" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
                 <rect x="40" y="40" width="1520" height="820" />
                 <line x1="800" y1="40" x2="800" y2="860" />
@@ -498,8 +523,8 @@
             </div>
             <div class="club-slot is-2">
               <figure class="club-photo" data-club-photo>
-                <div class="club-photo-media ph is-video" data-media="assets/clubs/barca/barca-video-1.mp4"><span class="ph-label">Vidéo · Wembley 2011</span></div>
-                <figcaption class="eyebrow"><b>28.05.2011</b> Wembley, but en finale contre Manchester United</figcaption>
+                <div class="club-photo-media ph" data-media="assets/clubs/barca/barca-photo-4.jpg"><span class="ph-label">Photo · Rome 2009</span></div>
+                <figcaption class="eyebrow"><b>27.05.2009</b> Rome, le crampon embrassé après sa tête en finale contre Manchester United</figcaption>
               </figure>
             </div>
           </div>
@@ -508,7 +533,7 @@
         <!-- C. IMMERSION : image révélée plein écran + textes -->
         <div class="club-panel club-immersion" data-club-immersion>
           <div class="club-cover" data-club-cover>
-            <div class="club-cover-media ph" data-media-youtube="wwBAqwFLhO0" data-media="assets/clubs/barca/barca-cover.mp4" data-media-fallback="assets/clubs/barca/barca-cover.jpg" data-media-role="cover">
+            <div class="club-cover-media ph" data-media-youtube="wwBAqwFLhO0" data-media-poster="assets/clubs/barca/barca-photo-1.jpg" data-media="assets/clubs/barca/barca-cover.mp4" data-media-fallback="assets/clubs/barca/barca-cover.jpg" data-media-role="cover">
               <svg class="ph-pitch" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
                 <rect x="40" y="40" width="1520" height="820" />
                 <line x1="800" y1="40" x2="800" y2="860" />
@@ -640,7 +665,7 @@
         <!-- C. IMMERSION : image révélée plein écran + textes -->
         <div class="club-panel club-immersion" data-club-immersion>
           <div class="club-cover" data-club-cover>
-            <div class="club-cover-media ph" data-media-youtube="JVcUOXbbpYY" data-media="assets/clubs/psg/psg-cover.mp4" data-media-fallback="assets/clubs/psg/psg-cover.jpg" data-media-role="cover">
+            <div class="club-cover-media ph" data-media-facebook="https://www.facebook.com/ChampionsLeague/videos/messis-first-goal-for-paris-ucl/1065861649519368/" data-media-poster="assets/clubs/psg/psg-photo-5.jpg" data-media="assets/clubs/psg/psg-cover.mp4" data-media-fallback="assets/clubs/psg/psg-cover.jpg" data-media-role="cover">
               <svg class="ph-pitch" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
                 <rect x="40" y="40" width="1520" height="820" />
                 <line x1="800" y1="40" x2="800" y2="860" />
@@ -648,7 +673,7 @@
                 <rect x="40" y="230" width="250" height="440" />
                 <rect x="1310" y="230" width="250" height="440" />
               </svg>
-              <span class="ph-label">Vidéo ou photo plein écran · Paris</span>
+              <span class="ph-label">Vidéo · premier but parisien en Ligue des champions</span>
             </div>
           </div>
           <!-- cadre "surface de réparation" autour de l'image fermée -->
@@ -754,8 +779,8 @@
             </div>
             <div class="club-slot is-2">
               <figure class="club-photo" data-club-photo>
-                <div class="club-photo-media ph is-video" data-media="assets/clubs/miami/miami-video-1.mp4"><span class="ph-label">Vidéo · MLS Cup</span></div>
-                <figcaption class="eyebrow"><b>2025</b> MLS Cup, premier titre de champion du club</figcaption>
+                <div class="club-photo-media ph" data-media="assets/clubs/miami/miami-photo-4.jpg"><span class="ph-label">Photo · MLS</span></div>
+                <figcaption class="eyebrow"><b>MLS</b> Le cri après un but, brassard au bras</figcaption>
               </figure>
             </div>
           </div>
@@ -764,7 +789,7 @@
         <!-- C. IMMERSION : image révélée plein écran + textes -->
         <div class="club-panel club-immersion" data-club-immersion>
           <div class="club-cover" data-club-cover>
-            <div class="club-cover-media ph" data-media-youtube="8Fv5_LWQgfc" data-media="assets/clubs/miami/miami-cover.mp4" data-media-fallback="assets/clubs/miami/miami-cover.jpg" data-media-role="cover">
+            <div class="club-cover-media ph" data-media-youtube="8Fv5_LWQgfc" data-media-poster="assets/clubs/miami/miami-photo-5.jpg" data-media="assets/clubs/miami/miami-cover.mp4" data-media-fallback="assets/clubs/miami/miami-cover.jpg" data-media-role="cover">
               <svg class="ph-pitch" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
                 <rect x="40" y="40" width="1520" height="820" />
                 <line x1="800" y1="40" x2="800" y2="860" />
@@ -885,7 +910,7 @@
         <!-- C. IMMERSION : image révélée plein écran + textes -->
         <div class="club-panel club-immersion" data-club-immersion>
           <div class="club-cover" data-club-cover>
-            <div class="club-cover-media ph" data-media-youtube="lO71ilUqByA" data-media="assets/clubs/argentine/argentine-cover.mp4" data-media-fallback="assets/clubs/argentine/argentine-cover.jpg" data-media-role="cover">
+            <div class="club-cover-media ph" data-media-youtube="lO71ilUqByA" data-media-poster="assets/clubs/argentine/argentine-photo-6.jpg" data-media-poster-pos="50% 70%" data-media="assets/clubs/argentine/argentine-cover.mp4" data-media-fallback="assets/clubs/argentine/argentine-cover.jpg" data-media-role="cover">
               <svg class="ph-pitch" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
                 <rect x="40" y="40" width="1520" height="820" />
                 <line x1="800" y1="40" x2="800" y2="860" />
@@ -1195,38 +1220,112 @@
   <!-- =====================================================
        FOOTER — palette du site (bleu marine, blanc cassé, grenat)
        ===================================================== -->
-  <footer class="site-footer" id="merci" data-footer>
-    <div class="footer-top">
-      <span class="eyebrow footer-reveal">Merci Leo</span>
-      <button class="footer-up eyebrow footer-reveal" type="button" data-footer-up>
-        Retour en haut <span aria-hidden="true">↑</span>
-      </button>
+  <footer class="site-footer" id="merci" data-footer
+          data-gl-change-track
+          data-gl-change-from="#0B1F3A, #1B3A66"
+          data-gl-change-to="#F6F5F0, #BAC3CF"
+          data-gl-change-trigger-start="top bottom"
+          data-gl-change-trigger-end="top 20%"
+          data-gl-change-cursor>
+    <!-- FINALE : « LM10 » géant, contour tracé au scroll puis rempli de marine -->
+    <div class="finale" data-finale>
+      <div class="finale-stage">
+        <p class="eyebrow finale-kicker" data-finale-fade>Coup de sifflet final</p>
+        <svg class="finale-mark" viewBox="-5 -132 425 140" role="img" aria-label="LM10" data-finale-mark>
+          <defs>
+            <clipPath id="lm10-clip">
+              <path d="M1.1 0 22.8 -123.8H58.1L41.5 -29.5H86.1L80.9 0Z" />
+              <path d="M93.2 0 115 -123.8H162.9L163.4 -74.2Q163.4 -72.3 163.5 -68.3Q163.6 -64.2 163.8 -59.6Q164 -54.9 163.9 -51.1H165.1Q166.3 -54.6 167.8 -58.6Q169.2 -62.6 170.7 -66.7Q172.2 -70.7 173.5 -74.4L191.2 -123.8H239.7L217.9 0H184.5L191.4 -38.7Q192.9 -47.5 194.5 -55.4Q196.2 -63.3 197.7 -69.5Q199.2 -75.8 199.9 -79.2H198.4Q197.7 -77.1 196.7 -74.1Q195.7 -71.1 194.7 -68.4Q193.7 -65.6 192.9 -63.6L168.6 0H140.9L139.4 -63.6Q139.4 -66.7 139.3 -71.2Q139.2 -75.7 139.2 -79.1H137.7Q137.4 -74.1 136.7 -67.2Q135.9 -60.3 135 -52.8Q134 -45.4 132.8 -38.7L126 0Z" />
+              <path d="M233.7 0 238.1 -25.4H258.8L269.1 -83.8H248.3L252 -104.6Q256.9 -104.9 262.7 -106.7Q268.5 -108.5 274.6 -111.2Q280.6 -113.9 286.4 -117.3Q292.1 -120.6 296.8 -124H307.8L290.3 -25.4H310.8L306.4 0Z" />
+              <path d="M360.1 2.2Q347.4 2.2 339.8 -2.2Q332.3 -6.5 328.9 -14.6Q325.6 -22.8 325.6 -34.2Q325.6 -38.4 326 -43Q326.5 -47.6 327.2 -52.7Q327.9 -57.8 328.8 -63.2Q331.4 -77.9 335.1 -89.5Q338.8 -101.1 344.6 -109.3Q350.3 -117.4 358.9 -121.7Q367.5 -126 379.8 -126Q392.6 -126 400.1 -121.7Q407.7 -117.4 411 -109.3Q414.3 -101.3 414.3 -90Q414.3 -86 413.9 -81.3Q413.5 -76.6 412.7 -71.5Q412 -66.3 411 -60.8Q408.4 -46.2 404.7 -34.5Q401 -22.9 395.3 -14.7Q389.6 -6.5 381.1 -2.2Q372.5 2.2 360.1 2.2ZM362.8 -21.9Q366 -21.9 368.2 -23.4Q370.3 -24.9 371.9 -28.5Q373.5 -32.2 375.1 -38.6Q376.6 -45 378.3 -54.8Q380.2 -65.4 381.4 -72.1Q382.6 -78.9 383.1 -82.8Q383.7 -86.7 383.9 -88.9Q384.1 -91.1 384.1 -92.5Q384.1 -97.8 382.3 -99.8Q380.6 -101.9 377 -101.9Q373.8 -101.9 371.5 -100.5Q369.3 -99 367.7 -95.3Q366.1 -91.7 364.6 -85.3Q363.1 -79 361.4 -69.2Q359.5 -58.6 358.4 -51.9Q357.3 -45.2 356.7 -41.3Q356.1 -37.3 355.9 -35.2Q355.7 -33.1 355.7 -31.7Q355.7 -26.5 357.4 -24.2Q359.1 -21.9 362.8 -21.9Z" />
+            </clipPath>
+          </defs>
+          <g clip-path="url(#lm10-clip)"><rect class="finale-fill" x="-5" y="-132" width="425" height="140" data-finale-fill /></g>
+          <g class="finale-stroke" data-finale-stroke>
+            <path d="M1.1 0 22.8 -123.8H58.1L41.5 -29.5H86.1L80.9 0Z" />
+            <path d="M93.2 0 115 -123.8H162.9L163.4 -74.2Q163.4 -72.3 163.5 -68.3Q163.6 -64.2 163.8 -59.6Q164 -54.9 163.9 -51.1H165.1Q166.3 -54.6 167.8 -58.6Q169.2 -62.6 170.7 -66.7Q172.2 -70.7 173.5 -74.4L191.2 -123.8H239.7L217.9 0H184.5L191.4 -38.7Q192.9 -47.5 194.5 -55.4Q196.2 -63.3 197.7 -69.5Q199.2 -75.8 199.9 -79.2H198.4Q197.7 -77.1 196.7 -74.1Q195.7 -71.1 194.7 -68.4Q193.7 -65.6 192.9 -63.6L168.6 0H140.9L139.4 -63.6Q139.4 -66.7 139.3 -71.2Q139.2 -75.7 139.2 -79.1H137.7Q137.4 -74.1 136.7 -67.2Q135.9 -60.3 135 -52.8Q134 -45.4 132.8 -38.7L126 0Z" />
+            <path d="M233.7 0 238.1 -25.4H258.8L269.1 -83.8H248.3L252 -104.6Q256.9 -104.9 262.7 -106.7Q268.5 -108.5 274.6 -111.2Q280.6 -113.9 286.4 -117.3Q292.1 -120.6 296.8 -124H307.8L290.3 -25.4H310.8L306.4 0Z" />
+            <path d="M360.1 2.2Q347.4 2.2 339.8 -2.2Q332.3 -6.5 328.9 -14.6Q325.6 -22.8 325.6 -34.2Q325.6 -38.4 326 -43Q326.5 -47.6 327.2 -52.7Q327.9 -57.8 328.8 -63.2Q331.4 -77.9 335.1 -89.5Q338.8 -101.1 344.6 -109.3Q350.3 -117.4 358.9 -121.7Q367.5 -126 379.8 -126Q392.6 -126 400.1 -121.7Q407.7 -117.4 411 -109.3Q414.3 -101.3 414.3 -90Q414.3 -86 413.9 -81.3Q413.5 -76.6 412.7 -71.5Q412 -66.3 411 -60.8Q408.4 -46.2 404.7 -34.5Q401 -22.9 395.3 -14.7Q389.6 -6.5 381.1 -2.2Q372.5 2.2 360.1 2.2ZM362.8 -21.9Q366 -21.9 368.2 -23.4Q370.3 -24.9 371.9 -28.5Q373.5 -32.2 375.1 -38.6Q376.6 -45 378.3 -54.8Q380.2 -65.4 381.4 -72.1Q382.6 -78.9 383.1 -82.8Q383.7 -86.7 383.9 -88.9Q384.1 -91.1 384.1 -92.5Q384.1 -97.8 382.3 -99.8Q380.6 -101.9 377 -101.9Q373.8 -101.9 371.5 -100.5Q369.3 -99 367.7 -95.3Q366.1 -91.7 364.6 -85.3Q363.1 -79 361.4 -69.2Q359.5 -58.6 358.4 -51.9Q357.3 -45.2 356.7 -41.3Q356.1 -37.3 355.9 -35.2Q355.7 -33.1 355.7 -31.7Q355.7 -26.5 357.4 -24.2Q359.1 -21.9 362.8 -21.9Z" />
+          </g>
+        </svg>
+        <p class="finale-thanks" data-finale-fade>Merci Leo<span class="finale-dot">.</span></p>
+      </div>
     </div>
 
-    <p class="footer-word" data-footer-word aria-label="Leo Messi">Leo Messi</p>
-    <span class="footer-line" data-footer-line aria-hidden="true"></span>
+    <div class="footer-main">
+      <div class="footer-top">
+        <span class="eyebrow footer-reveal">Merci Leo · 2004 — aujourd'hui</span>
+      </div>
 
-    <ul class="footer-stats">
-      <li class="footer-reveal"><b>8</b><span>Ballons d'Or</span></li>
-      <li class="footer-reveal"><b>1</b><span>Coupe du monde</span></li>
-      <li class="footer-reveal"><b>4</b><span>Ligues des champions</span></li>
-      <li class="footer-reveal"><b>2</b><span>Copa América</span></li>
-    </ul>
+      <div class="footer-grid">
+        <nav class="footer-nav" aria-label="Sections">
+          <a class="footer-link" href="#top" data-footer-link="top">
+            <span class="footer-link-n">01</span><span class="footer-link-text">Accueil</span>
+            <span class="footer-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path pathLength="1" d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+          <a class="footer-link" href="#manifeste" data-footer-link="manifeste">
+            <span class="footer-link-n">02</span><span class="footer-link-text">Manifeste</span>
+            <span class="footer-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path pathLength="1" d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+          <a class="footer-link" href="#newells" data-footer-link="newells">
+            <span class="footer-link-n">03</span><span class="footer-link-text">Les clubs</span>
+            <span class="footer-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path pathLength="1" d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+          <a class="footer-link" href="#ballons-dor" data-footer-link="ballons-dor">
+            <span class="footer-link-n">04</span><span class="footer-link-text">Ballons d'Or</span>
+            <span class="footer-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path pathLength="1" d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+          <a class="footer-link" href="#chiffres" data-footer-link="chiffres">
+            <span class="footer-link-n">05</span><span class="footer-link-text">En chiffres</span>
+            <span class="footer-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path pathLength="1" d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+        </nav>
 
-    <div class="footer-bottom">
-      <nav class="footer-clubs" aria-label="Clubs">
-        <span class="eyebrow eyebrow--muted">Les clubs</span>
-        <a class="eyebrow" href="#newells" data-club-jump="newells">Newell's Old Boys</a>
-        <a class="eyebrow" href="#barca" data-club-jump="barca">FC Barcelone</a>
-        <a class="eyebrow" href="#psg" data-club-jump="psg">Paris Saint-Germain</a>
-        <a class="eyebrow" href="#miami" data-club-jump="miami">Inter Miami</a>
-        <a class="eyebrow" href="#argentine" data-club-jump="argentine">Argentine</a>
-      </nav>
-      <p class="footer-note">
-        Projet d'entraînement non officiel, sans lien avec Lionel Messi ni avec les clubs cités.
-        Inspirations&nbsp;: landonorris.com (hero) et ousmaneballondor.fr (clubs).
-        Maillots, logos et lettrages restent la propriété de leurs auteurs.
-      </p>
+        <div class="footer-side">
+          <button class="footer-up footer-reveal" type="button" data-footer-up aria-label="Retour en haut">
+            <svg class="footer-ball" viewBox="-50 -50 100 100" aria-hidden="true">
+              <defs><clipPath id="ball-clip"><circle r="30" /></clipPath></defs>
+              <g class="footer-ball-spin">
+                <circle class="footer-ball-skin" r="30" />
+                <g clip-path="url(#ball-clip)">
+                  <path class="footer-ball-patch" d="M0-10.5 10 -3.2 6.2 8.5H-6.2L-10-3.2Z" />
+                  <path class="footer-ball-seam" d="M0-10.5V-21M10-3.2 20-6.5M6.2 8.5 12.4 17M-6.2 8.5-12.4 17M-10-3.2-20-6.5" />
+                  <path class="footer-ball-patch" d="M-7-21 0-26 7-21 4.5-31H-4.5Z" />
+                  <path class="footer-ball-patch" d="M20-6.5 28.5-0.5 31.5-9.5 27.5-17.5 22.5-14Z" />
+                  <path class="footer-ball-patch" d="M12.4 17 13 27.5 22 24 26 14 21 11Z" />
+                  <path class="footer-ball-patch" d="M-12.4 17-13 27.5-22 24-26 14-21 11Z" />
+                  <path class="footer-ball-patch" d="M-20-6.5-28.5-0.5-31.5-9.5-27.5-17.5-22.5-14Z" />
+                </g>
+                <circle class="footer-ball-rim" r="30" />
+              </g>
+              <path id="ball-ring" d="M0-41a41 41 0 1 1 0 82a41 41 0 1 1 0-82" fill="none" />
+              <text class="footer-ball-ring"><textPath href="#ball-ring">Retour en haut · Retour en haut · Retour en haut ·</textPath></text>
+            </svg>
+          </button>
+          <ul class="footer-stats">
+            <li class="footer-reveal"><b>8</b><span>Ballons d'Or</span></li>
+            <li class="footer-reveal"><b>1</b><span>Coupe du monde</span></li>
+            <li class="footer-reveal"><b>4</b><span>Ligues des champions</span></li>
+            <li class="footer-reveal"><b>2</b><span>Copa América</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <nav class="footer-clubs" aria-label="Clubs">
+          <span class="eyebrow eyebrow--muted">Les clubs</span>
+          <a class="eyebrow" href="#newells" data-club-jump="newells">Newell's Old Boys</a>
+          <a class="eyebrow" href="#barca" data-club-jump="barca">FC Barcelone</a>
+          <a class="eyebrow" href="#psg" data-club-jump="psg">Paris Saint-Germain</a>
+          <a class="eyebrow" href="#miami" data-club-jump="miami">Inter Miami</a>
+          <a class="eyebrow" href="#argentine" data-club-jump="argentine">Argentine</a>
+        </nav>
+        <p class="footer-note">
+          Projet d'entraînement non officiel, sans lien avec Lionel Messi ni avec les clubs cités.
+          Inspirations&nbsp;: landonorris.com (hero) et ousmaneballondor.fr (clubs).
+          Maillots, logos et lettrages restent la propriété de leurs auteurs.
+        </p>
+      </div>
     </div>
   </footer>
 
@@ -1248,5 +1347,6 @@
   <script src="js/ballons-dor.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/menu.js"></script>
+  <script src="js/hero-ui.js"></script>
 </body>
 </html>

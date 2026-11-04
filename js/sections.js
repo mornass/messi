@@ -101,40 +101,88 @@
   }
 
   /* -------------------------------------------------------
-     FOOTER
-       - "LEO MESSI" : lettres qui montent (masque) à l'arrivée du footer
-       - trait grenat tracé sous le mot, chiffres et textes en fondu
-       - "Retour en haut" : défilement doux vers le hero
+     FIN DE PAGE — « Coup de sifflet final »
+       - « LM10 » (scène collée, scrub) : contour tracé lettre par lettre,
+         puis rempli de marine depuis le bas ; surtitre et « Merci Leo » en fondu
+       - pied : liens et chiffres en fondu à l'arrivée
+       - liens : défilement doux vers la section (clubs : scrollToClub)
+       - ballon « Retour en haut » : frappé, remonte la page, rejoue l'intro du hero
+     Le fond (blanc cassé + curseur fluide) est géré par js/background.js.
      ------------------------------------------------------- */
   function initFooter() {
     const footer = document.querySelector("[data-footer]");
     if (!footer) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const word = footer.querySelector("[data-footer-word]");
-    word.innerHTML = Array.from(word.textContent.trim())
-      .map((c) => (c === " " ? '<span class="fw is-space" aria-hidden="true"></span>' : `<span class="fw" aria-hidden="true"><span>${c}</span></span>`))
-      .join("");
-    const letters = word.querySelectorAll(".fw > span");
-    const line = footer.querySelector("[data-footer-line]");
-    const reveals = footer.querySelectorAll(".footer-reveal, .footer-bottom");
-
-    if (!reduce) {
-      gsap.set(letters, { yPercent: 115 });
-      gsap.set(reveals, { autoAlpha: 0, y: 16 });
+    // ---- finale LM10 ----
+    const finale = footer.querySelector("[data-finale]");
+    const strokes = Array.from(footer.querySelectorAll("[data-finale-stroke] path"));
+    const fill = footer.querySelector("[data-finale-fill]");
+    const fades = footer.querySelectorAll("[data-finale-fade]");
+    if (finale && !reduce) {
+      strokes.forEach((p) => {
+        const len = Math.ceil(p.getTotalLength()) + 2;
+        gsap.set(p, { strokeDasharray: `${len} ${len}`, strokeDashoffset: len });
+      });
+      gsap.set(fill, { scaleY: 0, transformOrigin: "50% 100%" });
+      gsap.set(fades, { autoAlpha: 0, y: 24 });
       gsap
-        .timeline({ scrollTrigger: { trigger: footer, start: "top 75%", toggleActions: "play none none reverse" } })
-        .to(letters, { yPercent: 0, duration: 1, stagger: 0.05, ease: "expo.out" }, 0)
-        .to(line, { scaleX: 1, duration: 1.2, ease: "power2.inOut" }, 0.3)
-        .to(reveals, { autoAlpha: 1, y: 0, duration: 0.8, stagger: 0.06, ease: "power3.out" }, 0.4);
-    } else {
-      gsap.set(line, { scaleX: 1 });
+        .timeline({
+          defaults: { ease: "none" },
+          // calculé après les épinglages au-dessus (clubs, Ballons d'Or)
+          scrollTrigger: { trigger: finale, start: "top 70%", end: "bottom bottom", scrub: 1, refreshPriority: -1 },
+        })
+        .to(fades[0], { autoAlpha: 1, y: 0, duration: 0.25, ease: "power2.out" }, 0)
+        .to(strokes, { strokeDashoffset: 0, duration: 0.55, stagger: 0.12, ease: "power1.inOut" }, 0.05)
+        .to(fill, { scaleY: 1, duration: 0.4, ease: "power2.inOut" }, 0.75)
+        .to(fades[1], { autoAlpha: 1, y: 0, duration: 0.2, ease: "power2.out" }, 1)
+        .to({}, { duration: 0.15 });
     }
 
-    footer.querySelector("[data-footer-up]")?.addEventListener("click", () => {
-      if (window.lenis) window.lenis.scrollTo(0, { duration: 2.2, easing: (t) => 1 - Math.pow(1 - t, 4) });
-      else window.scrollTo({ top: 0, behavior: "smooth" });
+    // ---- pied ----
+    const reveals = footer.querySelectorAll(".footer-reveal, .footer-link, .footer-bottom");
+    if (!reduce) {
+      gsap.set(reveals, { autoAlpha: 0, y: 24 });
+      ScrollTrigger.batch(reveals, {
+        start: "top 92%",
+        refreshPriority: -1,
+        onEnter: (els) => gsap.to(els, { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.07, ease: "power3.out", overwrite: true }),
+        onLeaveBack: (els) => gsap.to(els, { autoAlpha: 0, y: 24, duration: 0.3, overwrite: true }),
+      });
+    }
+
+    // ---- liens vers les sections ----
+    const EASE = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t));
+    footer.querySelectorAll("[data-footer-link]").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        const id = a.dataset.footerLink;
+        if (window.scrollToClub && document.querySelector(`[data-club="${id}"]`)) return window.scrollToClub(id);
+        const el = id === "top" ? 0 : document.getElementById(id);
+        if (window.lenis) window.lenis.scrollTo(el, { duration: 2, easing: EASE });
+        else if (el === 0) window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+        else el?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+        history.replaceState(null, "", id === "top" ? location.pathname : `#${id}`);
+      });
+    });
+
+    // ---- ballon « Retour en haut » ----
+    const up = footer.querySelector("[data-footer-up]");
+    up?.addEventListener("click", () => {
       history.replaceState(null, "", location.pathname);
+      document.querySelector("[data-topbar-brand]")?.focus({ preventScroll: true }); // le clavier repart du haut
+      if (reduce) {
+        window.scrollTo(0, 0);
+        return;
+      }
+      up.classList.add("is-kicked");
+      setTimeout(() => up.classList.remove("is-kicked"), 1200);
+      const done = () => window.heroReplay?.();
+      if (window.lenis) window.lenis.scrollTo(0, { duration: 2.4, easing: (t) => 1 - Math.pow(1 - t, 4), onComplete: done });
+      else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setTimeout(done, 1200);
+      }
     });
   }
 

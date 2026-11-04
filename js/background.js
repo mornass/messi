@@ -6,6 +6,8 @@
      data-gl-change-track
      data-gl-change-from="#bg, #lignes"  data-gl-change-to="#bg, #lignes"
      data-gl-change-trigger-start / -end (défaut : "top top" / "bottom bottom")
+     data-gl-change-cursor : le curseur fluide (bandes marine, comme le hero)
+     apparaît avec ce changement (utilisé par la fin de page)
    ========================================================= */
 (() => {
   const container = document.querySelector('[data-gl="background"]');
@@ -14,7 +16,13 @@
   const COLORS = {
     background: "#0B1F3A", // bleu marine
     foreground: "#1B3A66", // lignes topographiques (discrètes)
+    // curseur fluide : bandes bleu pâle (le texte marine reste lisible dessus),
+    // contours bleu Barça
+    cursorBackground: "#D9E0EA",
+    cursorForeground: "#C5D1E1",
+    cursorOutline: "#004D98",
   };
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   // mêmes réglages que le bruit du hero (headScene de l'original)
   const P = {
     SCALE: 1, SPEED: 0.1, DISTORT_SCALE: 1, DISTORT_INTENSITY: 0.5, NOISE_DETAIL: 3,
@@ -96,6 +104,9 @@
       uniform float CURSOR_INTENSITY, CURSOR_SCALE, CURSOR_BOUNCE, LINE_WIDTH;
       uniform vec3 COLOR_BACKGROUND;
       uniform vec3 COLOR_FOREGROUND;
+      uniform sampler2D tTrail;
+      uniform float uReveal;
+      uniform vec3 COLOR_CURSOR_BACKGROUND, COLOR_CURSOR_FOREGROUND, COLOR_CURSOR_OUTLINE;
 
       float contour(float v, float width) {
         float f = abs(fract(v - 0.5) - 0.5) / max(fwidth(v), 1e-4);
@@ -117,9 +128,24 @@
           (uv + cursor * CURSOR_INTENSITY + noiseDistort * DISTORT_INTENSITY) * SCALE,
           uTime * SPEED
         )) * 0.5;
-        float edge = contour(noiseFinal * NOISE_DETAIL * 2.0, LINE_WIDTH * uDpr);
+        float level = noiseFinal * NOISE_DETAIL * 2.0;
+        float edge = contour(level, LINE_WIDTH * uDpr);
+        vec3 color = mix(COLOR_BACKGROUND, COLOR_FOREGROUND, edge);
 
-        gl_FragColor = vec4(mix(COLOR_BACKGROUND, COLOR_FOREGROUND, edge), 1.0);
+        // curseur fluide : la traînée de la souris révèle des bandes bleutées
+        // (une sur deux), contours bleu Barça, bord ondulé par le bruit
+        if (uReveal > 0.001) {
+          float t = texture2D(tTrail, vUv + (noiseDistort - 0.5) * 0.05).r;
+          float tw = max(fwidth(t), 1e-4);
+          float mask = smoothstep(0.3 - tw, 0.3 + tw, t) * uReveal;
+          float rim = (1.0 - clamp(abs(t - 0.3) / (tw * 1.5), 0.0, 1.0)) * uReveal;
+          float band = mod(floor(level), 2.0);
+          vec3 inside = mix(mix(COLOR_CURSOR_BACKGROUND, COLOR_CURSOR_FOREGROUND, band), COLOR_CURSOR_OUTLINE, edge);
+          color = mix(color, inside, mask);
+          color = mix(color, COLOR_CURSOR_OUTLINE, rim * 0.85);
+        }
+
+        gl_FragColor = vec4(color, 1.0);
       }
     `,
     uniforms: {
@@ -139,10 +165,55 @@
       LINE_WIDTH: { value: P.LINE_WIDTH },
       COLOR_BACKGROUND: { value: new THREE.Color(state.bg) },
       COLOR_FOREGROUND: { value: new THREE.Color(state.fg) },
+      tTrail: { value: null },
+      uReveal: { value: 0 },
+      COLOR_CURSOR_BACKGROUND: { value: new THREE.Color(COLORS.cursorBackground) },
+      COLOR_CURSOR_FOREGROUND: { value: new THREE.Color(COLORS.cursorForeground) },
+      COLOR_CURSOR_OUTLINE: { value: new THREE.Color(COLORS.cursorOutline) },
     },
   });
   const scene = new THREE.Scene();
   scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+
+  // ---------- Traînée du curseur fluide (petit canvas 2D, 1/8 de l'écran) ----------
+  const trail = document.createElement("canvas");
+  const tctx = trail.getContext("2d");
+  const trailTex = new THREE.CanvasTexture(trail);
+  trailTex.minFilter = trailTex.magFilter = THREE.LinearFilter;
+  material.uniforms.tTrail.value = trailTex;
+  const sizeTrail = () => {
+    trail.width = Math.max(32, Math.ceil(window.innerWidth / 8));
+    trail.height = Math.max(32, Math.ceil(window.innerHeight / 8));
+    tctx.fillStyle = "#000";
+    tctx.fillRect(0, 0, trail.width, trail.height);
+  };
+  sizeTrail();
+  window.addEventListener("resize", sizeTrail);
+  const brush = { x: null, y: null };
+  function paintTrail() {
+    const w = trail.width, h = trail.height;
+    tctx.globalCompositeOperation = "source-over";
+    tctx.fillStyle = "rgba(0, 0, 0, 0.05)"; // la traînée s'efface doucement
+    tctx.fillRect(0, 0, w, h);
+    const x = (mouse.cur.x * 0.5 + 0.5) * w;
+    const y = (0.5 - mouse.cur.y * 0.5) * h;
+    if (brush.x === null) { brush.x = x; brush.y = y; }
+    const dx = x - brush.x, dy = y - brush.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 0.1) return;
+    const r = Math.min(w, h) * (0.06 + Math.min(dist / w, 0.08));
+    tctx.globalCompositeOperation = "lighter";
+    const steps = Math.ceil(dist / (r * 0.35));
+    for (let i = 1; i <= steps; i++) {
+      const px = brush.x + (dx * i) / steps, py = brush.y + (dy * i) / steps;
+      const g = tctx.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, "rgba(255, 255, 255, 0.35)");
+      g.addColorStop(1, "rgba(255, 255, 255, 0)");
+      tctx.fillStyle = g;
+      tctx.fillRect(px - r, py - r, r * 2, r * 2);
+    }
+    brush.x = x; brush.y = y;
+  }
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -172,6 +243,7 @@
     const [bgTo, fgTo] = toPair(el.getAttribute("data-gl-change-to"));
     if (!bgFrom || !bgTo) return;
     const p = { progress: 0 };
+    const cursor = el.hasAttribute("data-gl-change-cursor") && !reduce;
     gsap.fromTo(p, { progress: 0 }, {
       progress: 1,
       ease: "none",
@@ -181,12 +253,14 @@
         start: el.getAttribute("data-gl-change-trigger-start") || "top top",
         end: el.getAttribute("data-gl-change-trigger-end") || "bottom bottom",
         scrub: true,
+        refreshPriority: -1, // après les épinglages créés plus tard (clubs, Ballons d'Or)
         invalidateOnRefresh: true,
         onUpdate: () => {
           state.bg = gsap.utils.interpolate(bgFrom, bgTo, p.progress);
           state.fg = gsap.utils.interpolate(fgFrom, fgTo, p.progress);
           material.uniforms.COLOR_BACKGROUND.value.set(state.bg);
           material.uniforms.COLOR_FOREGROUND.value.set(state.fg);
+          if (cursor) material.uniforms.uReveal.value = p.progress;
         },
       },
     });
@@ -213,6 +287,10 @@
 
     if (hidden) return;
     const u = material.uniforms;
+    if (u.uReveal.value > 0.001) {
+      paintTrail();
+      trailTex.needsUpdate = true;
+    } else brush.x = null;
     u.uTime.value = clock.elapsedTime;
     u.uMouseCoords.value.copy(mouse.eased);
     u.uMousePace.value = mouse.easedPace * 4;

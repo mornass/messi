@@ -1,0 +1,17 @@
+{
+  "_aide": "Prochain match : remplis opponent, competition et date (format ISO avec fuseau, ex. 2026-11-22T20:30:00-05:00). Si date vide ou passée, la carte affiche « Club actuel ». Stats : 3 chiffres max, modifiables librement.",
+  "nextMatch": {
+    "opponent": "",
+    "competition": "",
+    "date": "",
+    "venue": ""
+  },
+  "stats": {
+    "title": "Au Barça",
+    "items": [
+      { "value": 672, "label": "Buts" },
+      { "value": 778, "label": "Matchs" },
+      { "value": 35, "label": "Trophées" }
+    ]
+  }
+}
