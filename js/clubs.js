@@ -20,6 +20,8 @@
   const EXTRA_SCROLL = 2000;           // marge validée (original : 3000)
   const D = {
     paths: 1, pathsStagger: 0.1,       // zs, Bs
+    nameDraw: 1.6, nameStagger: 0.14,  // tracé lettre par lettre, lié au scroll
+    nameFill: 0.5,                     // remplissage une fois le contour fini
     jerseyIn: 0.8,                     // Vs
     nameOut: 0.5,                      // Gs
     digits: 0.8,                       // qs
@@ -33,6 +35,39 @@
   const COVER_CLOSED = "polygon(25% 36%, 70% 36%, 70% 55%, 25% 55%)";
   const COVER_OPEN = "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)";
   const isMobile = () => window.innerWidth <= 991;
+
+  /* -------------------------------------------------------
+     PALETTES — une par club, à partir des couleurs du maillot
+     (couleurs officielles → teintes profondes pour les fonds)
+       base   : fond le plus sombre (bords, vignette)
+       deep   : 1re couleur du club, assombrie (cœur des dégradés)
+       second : 2e couleur du club (second halo, bandes de tonte alternées)
+       accent : traits fins, soulignés
+       spark  : 3e couleur / petits détails (points, traits courts)
+       ink    : textes
+       glow   : halo de l'image plein écran
+       stage  : cœur du fond du panneau d'ouverture (derrière le maillot)
+       name   : couleur du nom tracé derrière le maillot
+     "site" = palette Barça du reste du site (avant le premier club).
+     ------------------------------------------------------- */
+  const PALETTES = {
+    site:      { stage: "#0B1F3A", name: "#F6F5F0", base: "#0B1F3A", deep: "#0B1F3A", second: "#0B1F3A", accent: "#A50044", spark: "#A50044", ink: "#F6F5F0", glow: "#004D98" },
+    // rouge #D7001E · noir #111111
+    newells:   { stage: "#1A1314", name: "#D7001E", base: "#0A0909", deep: "#6E0614", second: "#111111", accent: "#D7001E", spark: "#D7001E", ink: "#F4F0EC", glow: "#8A0418" },
+    // bleu #004D98 · grenat #A50044 · jaune #EDBB00
+    barca:     { stage: "#004D98", name: "#EDBB00", base: "#061A36", deep: "#004D98", second: "#7A0033", accent: "#A50044", spark: "#EDBB00", ink: "#F6F5F0", glow: "#004D98" },
+    // bleu marine #0A1F44 · rouge #DA291C
+    psg:       { stage: "#14336B", name: "#DA291C", base: "#050F24", deep: "#14336B", second: "#8E1A12", accent: "#DA291C", spark: "#DA291C", ink: "#F4F3F0", glow: "#1A3A73" },
+    // rose #F5B6CD · noir #111111
+    miami:     { stage: "#161214", name: "#F5B6CD", base: "#0E0C0D", deep: "#6B3A4C", second: "#111111", accent: "#F5B6CD", spark: "#F5B6CD", ink: "#F7EFF2", glow: "#7A4358" },
+    // bleu ciel #75AADB · blanc #FFFFFF
+    argentine: { stage: "#3F6F9C", name: "#FFFFFF", base: "#0D2238", deep: "#3F6F9C", second: "#C9D9EA", accent: "#75AADB", spark: "#FFFFFF", ink: "#FFFFFF", glow: "#75AADB" },
+  };
+  const THEME_KEYS = ["base", "deep", "second", "accent", "spark", "ink", "glow", "stage", "name"];
+  const DIP_KEYS = ["deep", "second", "glow", "stage"];   // teintes qui "plongent" dans le noir pendant la transition
+  const THEME_DIP = "#08080A";
+  const THEME_LAG = 0.8;                // lissage de la transition (s)
+  let jerseyOwner = null;              // club qui contrôle le canvas du maillot
 
   const maxX = (wrapper) => Math.max(0, wrapper.scrollWidth - window.innerWidth);
 
@@ -76,7 +111,8 @@
     const immersion = section.querySelector("[data-club-immersion]");
     const cover = immersion.querySelector("[data-club-cover]");
     const coverFrame = immersion.querySelector("[data-club-cover-frame]");
-    const coverVideo = cover.querySelector("video");
+    // photos et vidéos (js/club-media.js) : chargées à l'approche du club, lues quand il est actif
+    const media = window.ClubMedia ? ClubMedia.attach(section) : null;
     const info1 = immersion.querySelector("[data-club-info1]");
     const info2 = immersion.querySelector("[data-club-info2]");
 
@@ -93,10 +129,10 @@
       : { src: ds.jerseySrc || `assets/maillots/maillot-${id}.png` };
 
     // ---------- états initiaux ----------
+    // nom : une lettre = un <path> (vraie longueur) ; ancien <text> en repli
     nameParts.forEach((p) => {
-      // <text> n'a pas de getTotalLength : longueur large, le tracé reste progressif
-      const len = p.getTotalLength ? p.getTotalLength() : 3000;
-      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len, fillOpacity: 0 });
+      const len = p.getTotalLength ? Math.ceil(p.getTotalLength()) + 2 : 3000;
+      gsap.set(p, { strokeDasharray: `${len} ${len}`, strokeDashoffset: len, fillOpacity: 0 });
     });
     pitch.forEach((p) => {
       const len = p.getTotalLength();
@@ -129,19 +165,28 @@
     const jersey = { y: -50, o: 0 };
     let active = false;
     const applyJersey = () => {
-      if (!active) return;
+      if (!active || jerseyOwner !== id) return;
       gsap.set(player.canvas, { xPercent: -50, yPercent: jersey.y, opacity: jersey.o });
     };
+    // un seul canvas pour tous les clubs : seul le club "propriétaire" le pilote,
+    // pour qu'une sortie tardive (saut via la barre) n'éteigne pas le club suivant
     const activate = async () => {
       active = true;
+      media?.load();
+      media?.setGallery(true);
+      jerseyOwner = id;
       document.documentElement.setAttribute("data-gl-covered", "");
       await player.load(id, spec);
-      if (!active || !player.setSection(id)) return;
+      if (!active || jerseyOwner !== id || !player.setSection(id)) return;
       applyJersey();
-      requestAnimationFrame(() => active && player.start());
+      requestAnimationFrame(() => active && jerseyOwner === id && player.start());
     };
     const deactivate = () => {
       active = false;
+      media?.setGallery(false);
+      media?.setCover(false);
+      if (jerseyOwner !== id) return;
+      jerseyOwner = null;
       document.documentElement.removeAttribute("data-gl-covered");
       player.stop();
       player.clear();
@@ -162,10 +207,16 @@
       },
     });
 
-    tl.to(nameParts, { strokeDashoffset: 0, fillOpacity: 1, duration: D.paths, stagger: D.pathsStagger, ease: EASE_IO }, 0);
+    // nom : contour tracé lettre par lettre au fil du scroll (scrub → s'efface à l'envers
+    // quand on remonte), puis remplissage une fois le contour fini
+    // décalage entre formes réduit pour les noms très découpés (PSG : 17 formes) → même durée totale
+    const stagger = nameParts.length > 1 ? Math.min(D.nameStagger, 1 / (nameParts.length - 1)) : 0;
+    const drawEnd = D.nameDraw + (nameParts.length - 1) * stagger;
+    tl.to(nameParts, { strokeDashoffset: 0, duration: D.nameDraw, stagger, ease: "power1.inOut" }, 0);
+    tl.to(nameParts, { fillOpacity: 1, duration: D.nameFill, stagger: 0.04, ease: EASE_OUT }, drawEnd);
     tl.to(pitch, { strokeDashoffset: 0, duration: D.paths * 1.2, ease: EASE_IO }, 0);
     tl.to(spot, { scale: 1, duration: 0.3, ease: "back.out(3)" }, D.paths);
-    const pathsComplete = D.paths + (nameParts.length - 1) * D.pathsStagger;
+    const pathsComplete = drawEnd + D.nameFill;
     tl.add("pathsComplete", pathsComplete);
     tl.to(jersey, { o: 1, duration: D.jerseyIn, ease: EASE_IO, onUpdate: applyJersey }, 0);
     tl.to(nameSvg, { opacity: 0, duration: D.nameOut, ease: EASE_OUT }, "pathsComplete+=0.5");
@@ -205,11 +256,11 @@
       if (t >= lettersAt && !lettersIn) {
         lettersIn = true;
         if (vLetters.length) gsap.to(vLetters, { yPercent: 0, duration: 0.8, ease: "expo.out", stagger: 0.04, overwrite: true });
-        coverVideo?.play().catch(() => {});
+        media?.setCover(true);
       } else if (t < lettersAt && lettersIn) {
         lettersIn = false;
         if (vLetters.length) gsap.to(vLetters, { yPercent: 120, duration: 0.4, ease: "expo.out", stagger: 0.04, overwrite: true });
-        coverVideo?.pause();
+        media?.setCover(false);
       }
       updateGallery();
     });
@@ -271,7 +322,10 @@
       trigger: section,
       start: "top bottom+=150%",
       once: true,
-      onEnter: () => player.load(id, spec),
+      onEnter: () => {
+        player.load(id, spec);
+        media?.load();
+      },
     });
   }
 
@@ -294,21 +348,33 @@
       if (id && st.pin) pins.set(id, st);
     });
 
+    // défilement jusqu'au début d'un club (barre, carte du hero, footer…)
+    const jump = (id) => {
+      const st = pins.get(id);
+      if (!st) return false;
+      const y = st.start + 1; // juste après le début : le club est déjà épinglé
+      if (window.lenis) window.lenis.scrollTo(y, { duration: 1.5, easing: NAV_EASE });
+      else window.scrollTo({ top: y, behavior: "smooth" });
+      history.replaceState(null, "", `#${id}`);
+      return true;
+    };
+    window.scrollToClub = jump;
+
     links.forEach((a) => {
-      const id = a.dataset.clubLink;
-      if (!pins.has(id)) {
+      if (!pins.has(a.dataset.clubLink)) {
         a.classList.add("is-soon");
         a.setAttribute("aria-disabled", "true");
         a.tabIndex = -1;
       }
       a.addEventListener("click", (e) => {
         e.preventDefault();
-        const st = pins.get(id);
-        if (!st) return;
-        const y = st.start + 1; // juste après le début : le club est déjà épinglé
-        if (window.lenis) window.lenis.scrollTo(y, { duration: 1.5, easing: NAV_EASE });
-        else window.scrollTo({ top: y, behavior: "smooth" });
-        history.replaceState(null, "", `#${id}`);
+        jump(a.dataset.clubLink);
+      });
+    });
+    // tout autre lien vers un club, ailleurs dans la page : <a href="#miami" data-club-jump="miami">
+    document.querySelectorAll("[data-club-jump]").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        if (jump(a.dataset.clubJump)) e.preventDefault();
       });
     });
 
@@ -316,8 +382,6 @@
     const setActive = (id) => {
       current = id;
       links.forEach((a) => a.classList.toggle("is-active", a.dataset.clubLink === id));
-      const section = id && block.querySelector(`[data-club="${id}"]`);
-      gsap.to(nav, { color: section?.dataset.navColor || "#F6F5F0", duration: 0.35, ease: "power2.out", overwrite: "auto" });
     };
 
     // club actif = celui dont la piste (épinglage) contient le scroll
@@ -345,9 +409,73 @@
     });
   }
 
+  /* -------------------------------------------------------
+     THÈME DU BLOC — les couleurs suivent le club affiché.
+     Position continue t : 0 = palette du site, 1 = 1er club, 2 = 2e club…
+     Chaque club "arrive" pendant que son haut monte du bas au haut de l'écran
+     (au moment où le club précédent sort) : t avance de 0 à 1 sur ce trajet.
+     t est lissé par GSAP, puis les 5 couleurs sont interpolées et posées en
+     variables CSS sur le bloc (tout le reste en dérive en CSS).
+     ------------------------------------------------------- */
+  function initTheme(block) {
+    const sections = Array.from(block.querySelectorAll("[data-club]"));
+    if (!sections.length) return;
+    const stops = [PALETTES.site, ...sections.map((s) => PALETTES[s.dataset.club] || PALETTES.site)];
+    const state = { t: 0 };
+    let lastKey = "";
+
+    const apply = () => {
+      const i = Math.max(0, Math.min(stops.length - 2, Math.floor(state.t)));
+      const f = gsap.utils.clamp(0, 1, state.t - i);
+      const key = i + ":" + f.toFixed(4);
+      if (key === lastKey) return;
+      lastKey = key;
+      const a = stops[i], b = stops[i + 1];
+      THEME_KEYS.forEach((k) => {
+        let c;
+        if (DIP_KEYS.includes(k)) {
+          // les couleurs de club passent par le noir à mi-chemin (pas de violet boueux entre rouge et bleu)
+          c = f < 0.5
+            ? gsap.utils.interpolate(a[k], THEME_DIP, f * 2)
+            : gsap.utils.interpolate(THEME_DIP, b[k], (f - 0.5) * 2);
+        } else {
+          c = gsap.utils.interpolate(a[k], b[k], f);
+        }
+        block.style.setProperty(`--c-${k}`, c);
+      });
+    };
+
+    const target = () => {
+      const vh = window.innerHeight;
+      return sections.reduce((t, s) => t + gsap.utils.clamp(0, 1, (vh - s.getBoundingClientRect().top) / vh), 0);
+    };
+
+    let first = true;
+    const update = () => {
+      const t = target();
+      if (first) {
+        first = false;
+        state.t = t;
+        apply();
+        return;
+      }
+      gsap.to(state, { t, duration: THEME_LAG, ease: "power3.out", overwrite: true, onUpdate: apply });
+    };
+
+    ScrollTrigger.create({
+      trigger: block,
+      start: "top bottom",
+      end: "bottom top",
+      onUpdate: update,
+      onRefresh: update,
+    });
+    update();
+  }
+
   const start = () => {
     document.querySelectorAll("[data-club]").forEach(initClub);
     document.querySelectorAll("[data-clubs]").forEach(initNav);
+    document.querySelectorAll("[data-clubs]").forEach(initTheme);
     ScrollTrigger.refresh();
   };
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(start);

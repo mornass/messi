@@ -100,5 +100,44 @@
     }
   }
 
+  /* -------------------------------------------------------
+     FOOTER
+       - "LEO MESSI" : lettres qui montent (masque) à l'arrivée du footer
+       - trait grenat tracé sous le mot, chiffres et textes en fondu
+       - "Retour en haut" : défilement doux vers le hero
+     ------------------------------------------------------- */
+  function initFooter() {
+    const footer = document.querySelector("[data-footer]");
+    if (!footer) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const word = footer.querySelector("[data-footer-word]");
+    word.innerHTML = Array.from(word.textContent.trim())
+      .map((c) => (c === " " ? '<span class="fw is-space" aria-hidden="true"></span>' : `<span class="fw" aria-hidden="true"><span>${c}</span></span>`))
+      .join("");
+    const letters = word.querySelectorAll(".fw > span");
+    const line = footer.querySelector("[data-footer-line]");
+    const reveals = footer.querySelectorAll(".footer-reveal, .footer-bottom");
+
+    if (!reduce) {
+      gsap.set(letters, { yPercent: 115 });
+      gsap.set(reveals, { autoAlpha: 0, y: 16 });
+      gsap
+        .timeline({ scrollTrigger: { trigger: footer, start: "top 75%", toggleActions: "play none none reverse" } })
+        .to(letters, { yPercent: 0, duration: 1, stagger: 0.05, ease: "expo.out" }, 0)
+        .to(line, { scaleX: 1, duration: 1.2, ease: "power2.inOut" }, 0.3)
+        .to(reveals, { autoAlpha: 1, y: 0, duration: 0.8, stagger: 0.06, ease: "power3.out" }, 0.4);
+    } else {
+      gsap.set(line, { scaleX: 1 });
+    }
+
+    footer.querySelector("[data-footer-up]")?.addEventListener("click", () => {
+      if (window.lenis) window.lenis.scrollTo(0, { duration: 2.2, easing: (t) => 1 - Math.pow(1 - t, 4) });
+      else window.scrollTo({ top: 0, behavior: "smooth" });
+      history.replaceState(null, "", location.pathname);
+    });
+  }
+
   initImpact();
+  initFooter();
 })();

@@ -437,8 +437,22 @@ html.is-loading body { overflow: hidden; }
 /* =========================================================
    2. CLUBS — section épinglée, défilement horizontal
    ========================================================= */
-/* bloc des clubs : "nouvelle page", barre des clubs collée en haut */
+/* bloc des clubs : "nouvelle page", barre des clubs collée en haut.
+   Thème : chaque club a sa palette. js/clubs.js fait glisser ces 5 couleurs
+   d'un club à l'autre au scroll ; tout le reste en est dérivé (color-mix). */
 .clubs {
+  --c-base: var(--navy);       /* fond le plus profond (bords, vignette) */
+  --c-deep: var(--navy);       /* couleur du club, assombrie (cœur des dégradés) */
+  --c-accent: var(--grenat);   /* traits fins, soulignés, points */
+  --c-second: var(--grenat);   /* 2e couleur du club (second halo, bandes) */
+  --c-spark: var(--grenat);    /* 3e couleur / petits détails (points, traits courts) */
+  --c-ink: var(--offwhite);    /* textes et craie */
+  --c-glow: var(--barca);      /* halo de l'image plein écran */
+  --c-stage: var(--navy);      /* cœur du fond du panneau d'ouverture (derrière le maillot) */
+  --c-name: var(--offwhite);   /* nom du club tracé derrière le maillot */
+
+  --c-mid: color-mix(in srgb, var(--c-deep) 55%, var(--c-base));
+  --chalk: color-mix(in srgb, var(--c-ink) 38%, transparent);
   position: relative;
   z-index: 2;
 }
@@ -447,7 +461,7 @@ html.is-loading body { overflow: hidden; }
   top: 0;
   z-index: 30;
   height: 0;            /* ne prend pas de place : se superpose aux sections */
-  color: var(--offwhite);
+  color: var(--c-ink);
 }
 .clubs-nav-inner {
   position: absolute;
@@ -483,7 +497,7 @@ html.is-loading body { overflow: hidden; }
   right: 0;
   bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, var(--grenat), color-mix(in srgb, var(--grenat) 30%, transparent));
+  background: linear-gradient(90deg, var(--c-accent), color-mix(in srgb, var(--c-accent) 30%, transparent));
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1);
@@ -494,18 +508,33 @@ html.is-loading body { overflow: hidden; }
 .clubs-link.is-soon { opacity: 0.28; pointer-events: none; }
 
 .club {
-  --club-bg: var(--navy);
-  --club-stripe-a: color-mix(in srgb, var(--club-bg) 95%, var(--offwhite));
-  --club-stripe-b: color-mix(in srgb, var(--club-bg) 86%, var(--navy));
-  --chalk: color-mix(in srgb, var(--offwhite) 38%, transparent);
   position: relative;
   z-index: 1;
   height: 100vh;
   overflow: hidden;
-  color: var(--offwhite);
-  background: var(--navy);
+  color: var(--c-ink);
+  background: var(--c-base);
 }
-.club.is-barca { --club-bg: var(--barca); }
+/* grain argentique, fixe pendant le défilement horizontal */
+.club::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.075;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.2 -.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+/* vignette douce sur les bords */
+.club::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(ellipse 120% 95% at 50% 50%, transparent 55%, color-mix(in srgb, var(--c-base) 70%, transparent) 100%);
+}
 
 .club-wrapper {
   position: relative;
@@ -525,7 +554,10 @@ html.is-loading body { overflow: hidden; }
 /* ---------- A. Ouverture ---------- */
 .club-open {
   width: 100vw;
-  background: var(--club-bg);
+  background:
+    radial-gradient(ellipse 60% 65% at 82% 88%, color-mix(in srgb, var(--c-second) 55%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 55% at 12% 10%, color-mix(in srgb, var(--c-second) 30%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 75% 85% at 50% 48%, var(--c-stage) 0%, color-mix(in srgb, var(--c-stage) 55%, var(--c-base)) 42%, var(--c-base) 100%);
   overflow: hidden;
 }
 /* bandes de tonte (≈ vidéo qui s'ouvre depuis le centre dans l'original) */
@@ -536,8 +568,8 @@ html.is-loading body { overflow: hidden; }
   margin: 0 auto;
   background: repeating-linear-gradient(
     90deg,
-    var(--club-stripe-a) 0 6.25vw,
-    var(--club-stripe-b) 6.25vw 12.5vw
+    color-mix(in srgb, var(--c-deep) 22%, transparent) 0 6.25vw,
+    color-mix(in srgb, var(--c-second) 26%, transparent) 6.25vw 12.5vw
   );
 }
 .club-pitch {
@@ -562,7 +594,7 @@ html.is-loading body { overflow: hidden; }
   font-size: 22rem;
   line-height: 0.8;
   color: transparent;
-  -webkit-text-stroke: 2px color-mix(in srgb, var(--offwhite) 75%, transparent);
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--c-ink) 75%, transparent);
   pointer-events: none;
 }
 .club-number span { display: block; }
@@ -576,14 +608,26 @@ html.is-loading body { overflow: hidden; }
   transform: translate(-50%, -50%);
 }
 .club-name { display: block; width: 100%; height: auto; overflow: visible; }
+/* nom manuscrit en tracés : très grand, derrière le maillot.
+   Largeur = 92vw, sauf si le dessin est haut (PSG sur 3 lignes) : hauteur max ≈ 80vh.
+   --name-ar (largeur / hauteur du dessin) et --name-stroke sont posés sur chaque <svg>. */
+.club-name-w.is-traced { width: auto; }
+.club-name-w.is-traced .club-name { width: min(92vw, calc(80vh * var(--name-ar, 3))); }
+.club-name path {
+  fill: var(--c-name);
+  stroke: var(--c-name);
+  stroke-width: var(--name-stroke, 1.4);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
 .club-name text {
   font-family: var(--font-display);
   font-weight: 900;
   font-style: italic;
   font-stretch: 75%;
   font-size: 180px;
-  fill: var(--offwhite);
-  stroke: var(--offwhite);
+  fill: var(--c-ink);
+  stroke: var(--c-ink);
   stroke-width: 2;
   stroke-linejoin: round;
 }
@@ -594,15 +638,15 @@ html.is-loading body { overflow: hidden; }
   display: flex;
   align-items: center;
   gap: 0.6em;
-  color: color-mix(in srgb, var(--offwhite) 80%, transparent);
+  color: color-mix(in srgb, var(--c-ink) 80%, transparent);
 }
 .club-corner.is-br { bottom: var(--gap); right: var(--gap); }
 .club-dot {
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
-  border: 1px solid var(--grenat);
-  background: color-mix(in srgb, var(--grenat) 55%, transparent);
+  border: 1px solid var(--c-spark);
+  background: color-mix(in srgb, var(--c-spark) 55%, transparent);
 }
 
 /* ---------- B. Galerie ---------- */
@@ -610,7 +654,9 @@ html.is-loading body { overflow: hidden; }
   width: 150vw;
   padding-left: 5rem;
   justify-content: flex-start;
-  background: var(--club-bg);
+  background:
+    radial-gradient(ellipse 40% 70% at 72% 60%, color-mix(in srgb, var(--c-second) 45%, transparent) 0%, transparent 70%),
+    linear-gradient(90deg, var(--c-base) 0%, var(--c-mid) 25%, color-mix(in srgb, var(--c-deep) 70%, var(--c-base)) 45%, var(--c-mid) 75%, var(--c-base) 100%);
 }
 .club-gallery-title {
   position: absolute;
@@ -659,29 +705,52 @@ html.is-loading body { overflow: hidden; }
   overflow: hidden;
   border: 1px solid var(--chalk);
 }
-.club-photo-media img {
+.club-photo-media img,
+.club-photo-media video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+/* médias chargés par js/club-media.js : fondu au-dessus du placeholder */
+.club-photo-media > img,
+.club-photo-media > video,
+.club-cover-media > img,
+.club-cover-media > video { animation: media-in 0.8s ease both; }
+@keyframes media-in { from { opacity: 0; } }
+.club-photo-media.is-loaded > .ph-label,
+.club-cover-media.is-loaded > .ph-label,
+.club-cover-media.is-loaded > .ph-pitch { display: none; }
+/* placeholder vidéo : petit triangle de lecture au-dessus du libellé */
+.club-photo-media.is-video:not(.is-loaded)::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - 1.6rem);
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0.45rem 0 0.45rem 0.75rem;
+  border-color: transparent transparent transparent color-mix(in srgb, var(--c-ink) 60%, transparent);
+  transform: translateX(-35%);
+}
 .club-photo figcaption {
   display: flex;
   align-items: baseline;
   gap: 0.6em;
   margin-top: 0.7rem;
-  color: color-mix(in srgb, var(--offwhite) 78%, transparent);
+  color: color-mix(in srgb, var(--c-ink) 78%, transparent);
 }
 .club-photo figcaption::before {
   content: "";
   flex: none;
   width: 1.1rem;
   height: 1px;
-  background: var(--grenat);
+  background: linear-gradient(90deg, var(--c-accent), var(--c-spark));
   transform: translateY(-0.25em);
 }
-.club-photo figcaption b { color: var(--offwhite); font-weight: 600; }
+.club-photo figcaption b { color: var(--c-ink); font-weight: 600; }
 
 /* course tactique pointillée entre les photos */
 .club-run {
@@ -693,7 +762,7 @@ html.is-loading body { overflow: hidden; }
   overflow: visible;
 }
 .club-run path {
-  stroke: color-mix(in srgb, var(--offwhite) 45%, transparent);
+  stroke: color-mix(in srgb, var(--c-ink) 45%, transparent);
   stroke-width: 2;
   stroke-dasharray: 2 12;
   stroke-linecap: round;
@@ -706,8 +775,8 @@ html.is-loading body { overflow: hidden; }
   display: grid;
   place-items: center;
   background:
-    repeating-linear-gradient(135deg, color-mix(in srgb, var(--offwhite) 7%, transparent) 0 1px, transparent 1px 12px),
-    color-mix(in srgb, var(--navy) 55%, var(--club-bg));
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-ink) 7%, transparent) 0 1px, transparent 1px 12px),
+    linear-gradient(160deg, var(--c-mid), var(--c-base));
 }
 .ph-label {
   position: relative;
@@ -717,7 +786,7 @@ html.is-loading body { overflow: hidden; }
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--offwhite) 60%, transparent);
+  color: color-mix(in srgb, var(--c-ink) 60%, transparent);
 }
 
 /* ---------- C. Immersion ---------- */
@@ -725,7 +794,7 @@ html.is-loading body { overflow: hidden; }
   z-index: 2;
   width: 100vw;
   margin-left: -1px;
-  background: var(--navy);
+  background: var(--c-base);
   align-items: stretch;
   justify-content: stretch;
 }
@@ -748,8 +817,9 @@ html.is-loading body { overflow: hidden; }
 }
 .club-cover-media.ph {
   background:
-    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--barca) 70%, transparent), transparent 70%),
-    var(--navy);
+    radial-gradient(ellipse 55% 60% at 85% 85%, color-mix(in srgb, var(--c-second) 45%, transparent), transparent 70%),
+    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--c-glow) 70%, transparent), transparent 70%),
+    var(--c-base);
 }
 .ph-pitch {
   position: absolute;
@@ -757,7 +827,7 @@ html.is-loading body { overflow: hidden; }
   width: 100%;
   height: 100%;
 }
-.ph-pitch * { stroke: color-mix(in srgb, var(--offwhite) 20%, transparent); stroke-width: 2; }
+.ph-pitch * { stroke: color-mix(in srgb, var(--c-ink) 20%, transparent); stroke-width: 2; }
 .club-cover-frame {
   position: absolute;
   inset: 0;
@@ -766,8 +836,8 @@ html.is-loading body { overflow: hidden; }
   height: 100%;
   pointer-events: none;
 }
-.club-cover-frame rect { stroke: color-mix(in srgb, var(--offwhite) 70%, transparent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.club-cover-frame path { stroke: var(--grenat); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.club-cover-frame rect { stroke: color-mix(in srgb, var(--c-ink) 70%, transparent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.club-cover-frame path { stroke: var(--c-spark); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 
 .club-info1 {
   position: relative;
@@ -796,7 +866,7 @@ html.is-loading body { overflow: hidden; }
   font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.5;
-  color: color-mix(in srgb, var(--offwhite) 85%, transparent);
+  color: color-mix(in srgb, var(--c-ink) 85%, transparent);
 }
 
 .club-info2 {
@@ -811,8 +881,8 @@ html.is-loading body { overflow: hidden; }
   align-items: start;
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--navy) 92%, transparent) 0%,
-    color-mix(in srgb, var(--navy) 55%, transparent) 40%,
+    color-mix(in srgb, var(--c-base) 92%, transparent) 0%,
+    color-mix(in srgb, var(--c-base) 55%, transparent) 40%,
     transparent 75%
   );
 }
@@ -836,7 +906,7 @@ html.is-loading body { overflow: hidden; }
   display: block;
   height: 1px;
   margin-top: 0.6rem;
-  background: linear-gradient(90deg, transparent, var(--grenat));
+  background: linear-gradient(90deg, transparent, var(--c-accent) 65%, var(--c-spark));
 }
 .club-year {
   grid-row: 3;
@@ -846,7 +916,7 @@ html.is-loading body { overflow: hidden; }
   font-size: clamp(5rem, 16vw, 18.75rem);
   line-height: 0.8;
   color: transparent;
-  -webkit-text-stroke: 2px var(--offwhite);
+  -webkit-text-stroke: 2px var(--c-ink);
 }
 .club-year.is-left { grid-column: 1; justify-self: start; }
 .club-year.is-right { grid-column: 2; justify-self: end; }
@@ -879,12 +949,935 @@ html.is-loading body { overflow: hidden; }
   .club-h2 { font-size: 3.125rem; }
 }
 
-/* ---------- placeholder sections ---------- */
-.placeholder-next {
-  min-height: 70vh;
+/* =========================================================
+   3. LES 8 BALLONS D'OR — ambiance cérémonie (js/ballons-dor.js)
+   Palette propre à la section : noir #0A0A0C / anthracite #16161A,
+   or #C9A24B, champagne #E8D3A2, bleu marine seulement en profondeur,
+   grenat en tout petits détails.
+   Seuls transform / opacity sont animés (60 fps) ; le flou des faisceaux
+   et des cartes est fixe.
+   ========================================================= */
+.bdo {
+  --bg0: #0A0A0C;
+  --bg1: #16161A;
+  --gold: #C9A24B;
+  --champ: #E8D3A2;
+  --ink: #F3EFE6;
+  position: relative;
+  z-index: 2;
+  height: 100vh;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--bg0);
+  isolation: isolate;
+}
+.bdo::after { /* grain subtil, au-dessus de tout */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.2 -.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+/* ---------- fond en couches ---------- */
+.bdo-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 110% 55% at 50% 118%, rgba(11, 31, 58, 0.55) 0%, transparent 65%),   /* bleu marine, tout au fond */
+    radial-gradient(ellipse 70% 60% at 50% -5%, rgba(232, 211, 162, 0.07) 0%, transparent 70%),
+    linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 55%, #0E0E12 100%);
+}
+/* couleur de la section précédente, qui s'efface à l'arrivée (fondu au scroll) */
+.bdo-bg-prev {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: var(--prev, #0D2238);
+  opacity: 0;
+  pointer-events: none;
+}
+/* projecteurs : faisceaux venus du haut, qui oscillent lentement */
+.bdo-beams { position: absolute; inset: 0; mix-blend-mode: screen; }
+.bdo-beam {
+  --a0: -6deg;
+  --a1: 6deg;
+  position: absolute;
+  top: -12%;
+  width: 36vw;
+  height: 135%;
+  background: linear-gradient(180deg, rgba(232, 211, 162, 0.2) 0%, rgba(201, 162, 75, 0.07) 38%, transparent 82%);
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  filter: blur(16px);
+  transform-origin: 50% 0;
+  animation: bdo-sway 13s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.bdo-beam.is-1 { left: 2vw; --a0: -14deg; --a1: -4deg; animation-duration: 15s; }
+.bdo-beam.is-2 { left: 24vw; --a0: -5deg; --a1: 7deg; animation-duration: 11s; animation-delay: -4s; opacity: 0.8; }
+.bdo-beam.is-3 { left: 48vw; --a0: 6deg; --a1: -6deg; animation-duration: 14s; animation-delay: -7s; }
+.bdo-beam.is-4 { left: 70vw; --a0: 4deg; --a1: 15deg; animation-duration: 12s; animation-delay: -2s; opacity: 0.7; }
+@keyframes bdo-sway { from { transform: rotate(var(--a0)); } to { transform: rotate(var(--a1)); } }
+
+/* halo doré qui suit la souris (déplacé en transform par le JS) */
+.bdo-halo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 70vmax;
+  height: 70vmax;
+  margin: -35vmax 0 0 -35vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 162, 75, 0.2) 0%, rgba(201, 162, 75, 0.07) 32%, transparent 64%);
+  mix-blend-mode: screen;
+  will-change: transform;
+  pointer-events: none;
+}
+.bdo-particles { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* ---------- grand 8 ---------- */
+.bdo-eight {
+  position: absolute;
+  z-index: 1;
+  top: 5vh;
+  left: 66%;
+  height: 90vh;
+  width: auto;
+  transform: translateX(-50%);
+  overflow: visible;
+  pointer-events: none;
+}
+.bdo-eight-stroke {
+  fill: none;
+  stroke: url(#bdo-gold);
+  stroke-width: 0.32;
+  stroke-linejoin: round;
+}
+.bdo-eight-fill {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scaleY(0);
+  opacity: 0.8;
+}
+.bdo-eight-sheen {
+  opacity: 0;
+  animation: bdo-sheen 5.5s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@keyframes bdo-sheen {
+  0% { transform: translateX(0); }
+  35%, 100% { transform: translateX(175px); } /* unités du viewBox du 8 */
+}
+
+/* ---------- colonne éditoriale ---------- */
+.bdo-side {
+  position: absolute;
+  z-index: 3;
+  top: 13vh;
+  left: 6vw;
+  width: min(26vw, 26rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+.bdo-kicker, .bdo-index, .bdo-count, .bdo-card-head, .bdo-card-year {
+  font-family: var(--font-mono);
+}
+.bdo-kicker {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--champ) 70%, transparent);
+}
+.bdo-title { margin: 0; line-height: 0.88; }
+.bdo-title .is-light {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-stretch: 100%;
+  font-size: clamp(2.2rem, 4vw, 4.4rem);
+  color: var(--champ);
+}
+.bdo-title .is-heavy {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 75%;
+  font-size: clamp(2.8rem, 5.1vw, 5.6rem);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.bdo-lead {
+  margin: 0;
+  max-width: 21rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+.bdo-count {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--champ) 55%, transparent);
+}
+.bdo-count [data-bdo-count-n] {
+  font-size: clamp(2.6rem, 4.4vw, 4.4rem);
+  font-weight: 500;
+  line-height: 0.9;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.bdo-index {
   display: grid;
-  place-items: center;
-  color: color-mix(in srgb, var(--offwhite) 50%, transparent);
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  gap: 0.5rem 1.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+.bdo-index li {
+  position: relative;
+  color: color-mix(in srgb, var(--ink) 28%, transparent);
+  transition: color 0.4s ease;
+}
+.bdo-index li.is-on { color: var(--champ); }
+.bdo-index li.is-current::before { /* grenat : tout petit détail */
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -0.65rem;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: #A50044;
+}
+.bdo-outro {
+  margin: 0;
+  max-width: 22rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(1.3rem, 1.9vw, 1.9rem);
+  line-height: 1.2;
+  color: var(--champ);
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* ---------- les 8 cartes ---------- */
+.bdo-cards {
+  position: absolute;
+  z-index: 2;
+  top: 12vh;
+  bottom: 9vh;
+  left: 36vw;
+  right: 4vw;
+  perspective: 1200px;
+}
+.bdo-cards-track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 1.2vw;
+  height: 100%;
+  will-change: transform;
+}
+.bdo-card { opacity: 0; visibility: hidden; transform-style: preserve-3d; }
+.bdo-card-in {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(201, 162, 75, 0.38);
+  /* verre fumé : l'or du 8 transparaît en lueur, le texte reste lisible */
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(180deg, rgba(22, 22, 26, 0.62), rgba(10, 10, 12, 0.78));
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
+  backdrop-filter: blur(18px) saturate(115%);
+  box-shadow: inset 0 1px 0 rgba(232, 211, 162, 0.16), 0 24px 48px -24px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.bdo-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.bdo-card-num { color: var(--gold); }
+.bdo-card-club {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bdo-club-dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #004D98 50%, #A50044 50%);
+}
+.bdo-card[data-bdo-club="psg"] .bdo-club-dot { background: linear-gradient(90deg, #0A1F44 50%, #DA291C 50%); }
+.bdo-card[data-bdo-club="miami"] .bdo-club-dot { background: linear-gradient(90deg, #F5B6CD 50%, #111111 50%); }
+.bdo-card-media {
+  position: relative;
+  flex: none;
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 62%, rgba(201, 162, 75, 0.3) 0%, transparent 62%),
+    #0F0F13;
+  box-shadow: inset 0 0 0 1px rgba(232, 211, 162, 0.08);
+}
+/* photo du trophée tant que la vidéo / photo de l'année n'est pas fournie */
+.bdo-card-trophy {
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  height: 84%;
+  width: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.55));
+}
+.bdo-card-media.is-loaded > .bdo-card-trophy { display: none; }
+.bdo-card-media > video,
+.bdo-card-media > img:not(.bdo-card-trophy) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: media-in 0.8s ease both;
+}
+.bdo-card-year {
+  font-size: clamp(1.5rem, 2.3vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--champ);
+}
+.bdo-card-text {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--ink) 70%, transparent);
+}
+/* reflet qui suit le curseur au survol */
+.bdo-card-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 0%), rgba(232, 211, 162, 0.2), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.bdo-card-in:hover .bdo-card-glare { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bdo-beam, .bdo-eight-sheen { animation: none; }
+}
+
+/* ---------- mobile : cartes en carrousel, une à la fois ---------- */
+@media (max-width: 767px) {
+  .bdo-side { top: 8vh; left: 6vw; right: 6vw; width: auto; gap: 0.9rem; }
+  .bdo-title .is-light { font-size: 9vw; display: inline; }
+  .bdo-title .is-heavy { font-size: 12vw; }
+  .bdo-lead, .bdo-index { display: none; }
+  .bdo-count { position: absolute; top: 0; right: 0; }
+  .bdo-count [data-bdo-count-n] { font-size: 9vw; }
+  .bdo-outro { font-size: 6vw; max-width: none; }
+  .bdo-eight { top: 22vh; left: 50%; height: 42vh; opacity: 0.75; }
+  .bdo-cards { top: auto; bottom: 6vh; left: 0; right: 0; height: 44vh; }
+  .bdo-cards-track { display: flex; gap: 4vw; padding: 0 11vw; height: 100%; }
+  .bdo-card { flex: none; width: 78vw; }
+  .bdo-card-text { font-size: 0.875rem; }
+  .bdo-beam { width: 70vw; }
+  .bdo-beam.is-2, .bdo-beam.is-4 { display: none; }
+}
+
+/* =========================================================
+   4. EN CHIFFRES (js/stats.js) — section claire, palette du site
+   La feuille blanc cassé monte par-dessus la section noire : ses coins
+   arrondis s'aplatissent au scroll.
+   ========================================================= */
+.stats {
+  position: relative;
+  z-index: 2;
+  background: #0E0E12; /* bas de la section Ballons d'Or, sous les coins arrondis */
+}
+.stats-sheet {
+  position: relative;
+  padding: 9rem 6vw 8rem;
+  background: var(--offwhite);
+  color: var(--navy);
+  border-radius: 3rem 3rem 0 0;
+  will-change: transform;
+}
+.stats-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+  align-items: end;
+  gap: 2rem 6vw;
+  margin-bottom: 6rem;
+}
+.stats-kicker { grid-column: 1 / -1; color: color-mix(in srgb, var(--navy) 60%, transparent); }
+.stats-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 75%;
+  font-size: clamp(3.2rem, 9vw, 9.5rem);
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.stats-title em {
+  display: block;
+  font-weight: 400;
+  font-style: italic;
+  font-stretch: 100%;
+  font-size: 0.55em;
+  text-transform: none;
+  color: var(--barca);
+}
+.stats-intro {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--navy) 70%, transparent);
+}
+
+/* ---------- les 672 buts ---------- */
+.stats-goals {
+  padding: 3rem 0 4rem;
+  border-top: 1px solid color-mix(in srgb, var(--navy) 18%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--navy) 18%, transparent);
+  margin-bottom: 6rem;
+}
+.stats-goals-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 2rem 4vw;
+  margin-bottom: 3rem;
+}
+.stats-goals-count {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  font-stretch: 75%;
+  font-size: clamp(6rem, 18vw, 17rem);
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy);
+  min-width: 3.2ch;
+}
+.stats-goals-text {
+  margin: 0 0 0.6rem;
+  max-width: 22rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--navy) 75%, transparent);
+}
+.stats-goals-text strong { color: var(--navy); }
+.stats-chart { width: 100%; }
+.stats-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.stats-chart .dot { fill: color-mix(in srgb, var(--navy) 10%, transparent); transition: fill 0.25s ease; }
+.stats-chart .dot.is-on { fill: var(--navy); }
+.stats-chart .col.is-record .dot.is-on { fill: var(--barca); }
+.stats-chart .season,
+.stats-chart .value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  fill: color-mix(in srgb, var(--navy) 55%, transparent);
+}
+.stats-chart .value { fill: var(--navy); opacity: 0; transition: opacity 0.4s ease; }
+.stats-chart .col.is-done .value { opacity: 1; }
+.stats-chart .col.is-record .value { fill: var(--grenat); }
+
+/* ---------- les 8 records (révélation à la landonorris.com) ---------- */
+/* lignes de grille : 1 px d'espace sur un fond bleu marine très clair */
+.stats-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: color-mix(in srgb, var(--navy) 16%, var(--offwhite));
+  border-top: 1px solid color-mix(in srgb, var(--navy) 16%, var(--offwhite));
+  border-bottom: 1px solid color-mix(in srgb, var(--navy) 16%, var(--offwhite));
+}
+.stat {
+  position: relative;
+  display: flex;
+  gap: 1.5rem;
+  min-height: 16rem;
+  padding: 1.75rem 1.5rem 2rem;
+  background: var(--offwhite);
+}
+.stat.is-feature { grid-column: span 2; }
+.stat.is-wide { grid-column: 1 / -1; }
+.stat-body { display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.stat-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  font-size: clamp(4rem, 7.5vw, 7.5rem);
+  line-height: 0.85;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.stat:hover .stat-num { color: var(--barca); }
+.stat-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.stat-ctx {
+  position: relative;
+  padding-left: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--navy) 60%, transparent);
+}
+.stat-ctx::before { /* grenat : petit trait */
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 0.55rem;
+  height: 1px;
+  background: var(--grenat);
+}
+.stat-media {
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  min-height: 12rem;
+  overflow: hidden;
+  border-radius: 0.6rem;
+  background:
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--navy) 7%, transparent) 0 1px, transparent 1px 12px),
+    color-mix(in srgb, var(--navy) 6%, var(--offwhite));
+}
+.stat-media .ph-label { position: absolute; inset: 0; display: grid; place-items: center; color: color-mix(in srgb, var(--navy) 50%, transparent); }
+.stat-media.is-loaded > .ph-label { display: none; }
+.stat-media > img,
+.stat-media > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: media-in 0.8s ease both;
+}
+
+@media (max-width: 991px) {
+  .stats-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat.is-feature { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) {
+  .stats-sheet { padding: 6rem 6vw 5rem; border-radius: 2rem 2rem 0 0; }
+  .stats-head { grid-template-columns: 1fr; margin-bottom: 4rem; }
+  .stats-goals-head { flex-direction: column; align-items: flex-start; }
+  .stat { min-height: 12rem; padding: 1.4rem 0.8rem 1.6rem; }
+  .stat.is-feature { flex-direction: column; }
+  .stat-media { min-height: 0; aspect-ratio: 16 / 10; flex: none; }
+}
+
+/* =========================================================
+   MENU PLEIN ÉCRAN (js/menu.js) — d'après le menu de landonorris.com
+   ========================================================= */
+.menu-btn {
+  position: fixed;
+  z-index: 70;
+  top: 1rem;
+  right: var(--gap);
+  width: 3.25rem;
+  height: 3.25rem;
+  display: grid;
+  place-content: center;
+  gap: 0.42rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--offwhite) 22%, transparent);
+  border-radius: 0.8rem;
+  background: var(--navy);
+  color: var(--offwhite);
+  cursor: pointer;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45);
+  transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1), background-color 0.4s ease;
+}
+.menu-btn:hover { transform: scale(1.06); }
+.menu-btn:focus-visible { outline: 2px solid var(--grenat); outline-offset: 3px; }
+.menu-btn-bar {
+  display: block;
+  width: 1.35rem;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.menu-btn[aria-expanded="true"] { background: var(--offwhite); color: var(--navy); }
+.menu-btn[aria-expanded="true"] .menu-btn-bar:first-child { transform: translateY(0.28rem) rotate(45deg); }
+.menu-btn[aria-expanded="true"] .menu-btn-bar:last-child { transform: translateY(-0.28rem) rotate(-45deg); }
+html.is-loading .menu-btn { opacity: 0; pointer-events: none; }
+
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: clip;
+  color: var(--offwhite);
+  background:
+    radial-gradient(ellipse 60% 60% at 75% 30%, color-mix(in srgb, var(--barca) 35%, transparent), transparent 70%),
+    var(--navy);
+  clip-path: ellipse(120% 0% at 50% 0%);
+}
+.menu[hidden] { display: none; }
+/* motif : marquages du terrain à la craie */
+.menu-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' fill='none' stroke='%23F6F5F0' stroke-width='2'%3E%3Crect x='40' y='40' width='1520' height='820'/%3E%3Cline x1='800' y1='40' x2='800' y2='860'/%3E%3Ccircle cx='800' cy='450' r='150'/%3E%3Crect x='40' y='220' width='260' height='460'/%3E%3Crect x='1300' y='220' width='260' height='460'/%3E%3Crect x='40' y='340' width='90' height='220'/%3E%3Crect x='1470' y='340' width='90' height='220'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+}
+.menu-inner {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--gap);
+  padding: 1.25rem 7rem 0 3rem;
+  min-height: 0;
+}
+
+/* deux colonnes d'images, décalées, qui suivent la souris (sens opposés) */
+.menu-images {
+  display: flex;
+  gap: calc(var(--gap) * 2);
+  align-items: center;
+  height: 100%;
+  min-height: 0;
+}
+.menu-images-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  will-change: transform;
+}
+.menu-images-col:last-child { margin-top: 14vh; }
+.menu-img {
+  position: relative;
+  /* taille calée sur la hauteur : 3 images + 2 espaces tiennent dans l'écran */
+  height: min(27vh, 21vw);
+  aspect-ratio: 23 / 25;
+  margin: 0;
+  overflow: hidden;
+  clip-path: ellipse(120% 0% at 50% 0%);
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 70%, color-mix(in srgb, var(--barca) 45%, transparent), transparent 75%),
+    color-mix(in srgb, var(--navy) 70%, black);
+}
+.menu-img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  transition: opacity 0.6s cubic-bezier(0.19, 1, 0.22, 1), transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+/* bichromie bleue par défaut, couleur au survol du lien correspondant */
+.menu-img-duo { filter: grayscale(1) contrast(1.05) brightness(0.8) sepia(1) hue-rotate(180deg) saturate(1.6); opacity: 0.8; }
+.menu-img-color { opacity: 0; }
+.menu-img.is-hot .menu-img-color { opacity: 1; transform: scale(1.04); }
+.menu-img.is-hot .menu-img-duo { opacity: 0; }
+
+.menu-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  text-align: center;
+}
+.menu-kicker, .menu-clubs, .menu-foot {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.menu-kicker { color: color-mix(in srgb, var(--offwhite) 55%, transparent); }
+.menu-links { display: flex; flex-direction: column; align-items: center; }
+.menu-link {
+  position: relative;
+  display: block;
+  overflow: clip;
+  padding: 0 0.15em 0.42em;
+  margin-bottom: -0.3em;
+  color: color-mix(in srgb, var(--offwhite) 92%, transparent);
+  text-decoration: none;
+  clip-path: ellipse(30% 0% at 50% 0%);
+}
+.menu-link-text {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 85%;
+  font-size: clamp(2.8rem, 5.6vw, 5.4rem);
+  line-height: 0.94;
+  text-transform: uppercase;
+  transition: color 0.6s cubic-bezier(0.19, 1, 0.22, 1), transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.menu-link:hover .menu-link-text,
+.menu-link:focus-visible .menu-link-text { color: var(--offwhite); transform: translateX(0.12em) skewX(-6deg); }
+.menu-link:focus-visible { outline: none; }
+/* trait ondulé grenat sous la section en cours */
+.menu-link-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.22em;
+  font-size: clamp(2.8rem, 5.6vw, 5.4rem);
+  color: var(--grenat);
+  opacity: 0;
+  pointer-events: none;
+}
+.menu-link-wave svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.menu-link-wave path { stroke: currentColor; stroke-width: 6; vector-effect: non-scaling-stroke; }
+.menu-link.is-current .menu-link-wave { opacity: 1; }
+.menu-link.is-current .menu-link-text { color: var(--offwhite); }
+
+.menu-clubs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem 1.2rem;
+  color: color-mix(in srgb, var(--offwhite) 55%, transparent);
+}
+.menu-clubs a {
+  position: relative;
+  color: var(--offwhite);
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+.menu-clubs a::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -0.35em;
+  height: 1px;
+  background: var(--grenat);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.menu-clubs a:hover { opacity: 1; }
+.menu-clubs a:hover::after { transform: scaleX(1); }
+.menu-foot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 1.25rem var(--gap);
+  color: color-mix(in srgb, var(--offwhite) 45%, transparent);
+}
+
+/* la barre des clubs laisse la place au bouton menu */
+.clubs-nav-inner { padding-right: calc(var(--gap) + 4.25rem); }
+
+@media (max-width: 767px) {
+  .menu-btn { top: 0.75rem; width: 2.9rem; height: 2.9rem; }
+  .menu-inner { grid-template-columns: 1fr; padding: 4.5rem var(--gap) 0; }
+  .menu-images { display: none; }
+  .menu-link-text, .menu-link-wave { font-size: 12vw; }
+  .menu-foot { font-size: 0.5625rem; }
+  .clubs-nav-inner { padding-right: calc(var(--gap) + 3.5rem); }
+}
+
+/* =========================================================
+   FOOTER — palette du site, sur le fond topographique global
+   ========================================================= */
+.site-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: calc(2 * var(--gap));
+  padding: calc(4 * var(--gap)) var(--gap) calc(1.5 * var(--gap));
+  color: var(--offwhite);
+  overflow: clip;
+}
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: color-mix(in srgb, var(--offwhite) 75%, transparent);
+}
+.footer-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.7em 1.1em;
+  border: 1px solid color-mix(in srgb, var(--offwhite) 35%, transparent);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.35s ease, color 0.35s ease;
+}
+.footer-up:hover { border-color: var(--grenat); color: var(--offwhite); }
+.footer-up span { display: inline-block; transition: transform 0.35s ease; }
+.footer-up:hover span { transform: translateY(-2px); }
+
+/* grand mot-symbole, une lettre = un masque */
+.footer-word {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  font-stretch: 75%;
+  font-size: clamp(4rem, 17.5vw, 19rem);
+  line-height: 0.85;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.footer-word .fw { display: inline-block; overflow: hidden; padding: 0.04em 0.06em 0.06em; margin: 0 -0.06em; }
+.footer-word .fw > span { display: inline-block; will-change: transform; }
+.footer-word .fw.is-space { width: 0.18em; }
+/* fin trait grenat sous le mot, tracé à l'entrée */
+.footer-line {
+  display: block;
+  height: 1px;
+  margin-top: calc(-1.5 * var(--gap));
+  background: linear-gradient(90deg, transparent, var(--grenat) 20%, var(--grenat) 80%, transparent);
+  transform: scaleX(0);
+}
+
+.footer-stats {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid color-mix(in srgb, var(--offwhite) 18%, transparent);
+}
+.footer-stats li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.4rem 1rem 0 0;
+}
+.footer-stats li + li { padding-left: 1rem; border-left: 1px solid color-mix(in srgb, var(--offwhite) 18%, transparent); }
+.footer-stats b {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 80%;
+  font-size: clamp(2.4rem, 5vw, 4.5rem);
+  line-height: 0.9;
+}
+.footer-stats span {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--offwhite) 70%, transparent);
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: calc(2 * var(--gap));
+  padding-top: var(--gap);
+}
+.footer-clubs { display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem; align-items: baseline; }
+.footer-clubs a {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+.footer-clubs a::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -0.35em;
+  height: 1px;
+  background: var(--grenat);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.footer-clubs a:hover { opacity: 1; }
+.footer-clubs a:hover::after { transform: scaleX(1); }
+.footer-note {
+  margin: 0;
+  max-width: 26rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  line-height: 1.6;
+  text-align: right;
+  color: color-mix(in srgb, var(--offwhite) 55%, transparent);
+}
+
+@media (max-width: 767px) {
+  .footer-stats { grid-template-columns: repeat(2, 1fr); }
+  .footer-stats li:nth-child(3) { padding-left: 0; border-left: none; }
+  .footer-stats li:nth-child(n + 3) { padding-top: 1.2rem; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+  .footer-note { text-align: left; }
 }
 
 /* ---------- Mobile ---------- */
