@@ -85,7 +85,7 @@
     { el: () => $("[data-clubs]"), name: "Les clubs", ink: null }, // barre des clubs à la place
     { el: () => $("#ballons-dor"), name: "Ballons d'Or", ink: "#E8D3A2" },
     { el: () => $("#chiffres"), name: "En chiffres", ink: "#0B1F3A" },
-    { el: () => $("#merci"), name: "Merci Leo", ink: "#F6F5F0" },
+    { el: () => $("#merci"), name: "Merci Leo", ink: "#0B1F3A" },
   ];
   let current = null;
   function setSection(sec) {

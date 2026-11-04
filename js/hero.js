@@ -1359,6 +1359,16 @@
       drawSignature(1.1);
     };
 
+    // rejouée par le bouton « Retour en haut » du footer, une fois arrivé en haut
+    window.heroReplay = () => {
+      gsap.fromTo(container, { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1, duration: 1.6, ease: "expo.out", clearProps: "transform", overwrite: true });
+      gsap.fromTo(compMaterial.uniforms.uNameReveal, { value: -0.15 }, { value: 1.2, duration: 1.8, ease: "power3.inOut", delay: 0.25, overwrite: true });
+      highLines.forEach((tl) => tl.restart());
+      sigParts.forEach((p) => gsap.set(p, { strokeDashoffset: Math.ceil(p.getTotalLength()) + 2, fillOpacity: 0 }));
+      drawSignature(0.9);
+      gsap.delayedCall(0.45, drawPitch);
+    };
+
     if (window.Preloader) {
       window.Preloader.setLoaded();
       window.Preloader.onExit(intro);
