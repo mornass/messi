@@ -37,7 +37,87 @@
     </div>
   </div>
 
-  <main>
+  <!-- =====================================================
+       MENU PLEIN ÉCRAN (js/menu.js) — inspiré du menu de landonorris.com
+       Ouverture : fond en ellipse depuis le haut, images puis liens en cascade,
+       trait ondulé grenat sous la section en cours ; images en bichromie,
+       en couleur au survol du lien correspondant ; colonnes qui suivent la souris.
+       ===================================================== -->
+  <button class="menu-btn" type="button" data-menu-btn aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+    <span class="menu-btn-bar"></span><span class="menu-btn-bar"></span>
+  </button>
+
+  <div class="menu" id="menu" data-menu role="dialog" aria-modal="true" aria-label="Menu" hidden>
+    <div class="menu-bg" data-menu-bg aria-hidden="true"></div>
+    <div class="menu-inner">
+      <div class="menu-images" aria-hidden="true">
+        <div class="menu-images-col" data-menu-col>
+            <figure class="menu-img" data-menu-img="1">
+              <img class="menu-img-duo" src="assets/img/messi-actuel.png" alt="" loading="lazy" decoding="async" />
+              <img class="menu-img-color" src="assets/img/messi-actuel.png" alt="Leo aujourd'hui" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="menu-img" data-menu-img="3">
+              <img class="menu-img-duo" src="assets/maillots/maillot-barca.png" alt="" loading="lazy" decoding="async" />
+              <img class="menu-img-color" src="assets/maillots/maillot-barca.png" alt="Maillot du Barça" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="menu-img" data-menu-img="5">
+              <img class="menu-img-duo" src="assets/maillots/maillot-argentine.png" alt="" loading="lazy" decoding="async" />
+              <img class="menu-img-color" src="assets/maillots/maillot-argentine.png" alt="Maillot de l'Argentine" loading="lazy" decoding="async" />
+            </figure>
+        </div>
+        <div class="menu-images-col" data-menu-col>
+            <figure class="menu-img" data-menu-img="2">
+              <img class="menu-img-duo" src="assets/img/messi-jeune.png" alt="" loading="lazy" decoding="async" />
+              <img class="menu-img-color" src="assets/img/messi-jeune.png" alt="Leo jeune" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="menu-img" data-menu-img="4">
+              <img class="menu-img-duo" src="assets/3d/ballon-dor.png" alt="" loading="lazy" decoding="async" />
+              <img class="menu-img-color" src="assets/3d/ballon-dor.png" alt="Le Ballon d'Or" loading="lazy" decoding="async" />
+            </figure>
+        </div>
+      </div>
+
+      <nav class="menu-nav" aria-label="Sections du site">
+        <span class="menu-kicker">Lionel Messi · LM10</span>
+        <div class="menu-links">
+          <a class="menu-link" href="#top" data-menu-link="top" data-menu-img-target="1">
+            <span class="menu-link-text">Accueil</span>
+            <span class="menu-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+          <a class="menu-link" href="#manifeste" data-menu-link="manifeste" data-menu-img-target="2">
+            <span class="menu-link-text">Manifeste</span>
+            <span class="menu-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+          <a class="menu-link" href="#newells" data-menu-link="newells" data-menu-img-target="3">
+            <span class="menu-link-text">Les clubs</span>
+            <span class="menu-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+          <a class="menu-link" href="#ballons-dor" data-menu-link="ballons-dor" data-menu-img-target="4">
+            <span class="menu-link-text">Ballons d'Or</span>
+            <span class="menu-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+          <a class="menu-link" href="#merci" data-menu-link="merci" data-menu-img-target="5">
+            <span class="menu-link-text">Merci Leo</span>
+            <span class="menu-link-wave" aria-hidden="true"><svg viewBox="0 0 412 26" fill="none" preserveAspectRatio="none"><path d="M0 2h73.5c5.9 0 11.5 2.4 15.6 6.5l8.6 8.7a21.9 21.9 0 0 0 15.6 6.5h72.7c6 0 11.8-2.5 16-6.9l6.5-6.9A21.9 21.9 0 0 1 224.3 3h76.8a21.9 21.9 0 0 1 16.8 7.9l4.4 5.2a21.9 21.9 0 0 0 16.8 7.9H412" /></svg></span>
+          </a>
+        </div>
+        <div class="menu-clubs" data-menu-sub>
+          <span>Les clubs</span>
+          <a href="#newells" data-menu-club="newells">Newell's</a>
+          <a href="#barca" data-menu-club="barca">Barça</a>
+          <a href="#psg" data-menu-club="psg">PSG</a>
+          <a href="#miami" data-menu-club="miami">Inter Miami</a>
+          <a href="#argentine" data-menu-club="argentine">Argentine</a>
+        </div>
+      </nav>
+    </div>
+    <div class="menu-foot" data-menu-sub>
+      <span>Rosario, 24.06.1987</span>
+      <span>Échap pour fermer</span>
+    </div>
+  </div>
+
+  <main id="top">
     <h1 class="sr-only">Lionel Messi</h1>
     <h2 class="sr-only">Numéro 10, FC Barcelone 2004 — 2021</h2>
 
@@ -146,7 +226,7 @@
     <!-- =====================================================
          1. IMPACT — manifeste
          ===================================================== -->
-    <section class="impact" data-impact>
+    <section class="impact" id="manifeste" data-impact>
       <!-- marquages du terrain, tracés au scroll -->
       <div class="impact-pitch" aria-hidden="true">
         <span class="impact-pitch-line is-left" data-pitch-line></span>
@@ -992,7 +1072,7 @@
   <!-- =====================================================
        FOOTER — palette du site (bleu marine, blanc cassé, grenat)
        ===================================================== -->
-  <footer class="site-footer" data-footer>
+  <footer class="site-footer" id="merci" data-footer>
     <div class="footer-top">
       <span class="eyebrow footer-reveal">Merci Leo</span>
       <button class="footer-up eyebrow footer-reveal" type="button" data-footer-up>
@@ -1043,5 +1123,6 @@
   <script src="js/club-media.js"></script>
   <script src="js/clubs.js"></script>
   <script src="js/ballons-dor.js"></script>
+  <script src="js/menu.js"></script>
 </body>
 </html>
