@@ -1,0 +1,272 @@
+/* =========================================================
+   404 — mini-jeu « le but contre Getafe » (vue subjective)
+   Palette du site : marine, blanc cassé, grenat en touches.
+   ========================================================= */
+:root {
+  --navy: #0B1F3A;
+  --offwhite: #F6F5F0;
+  --grenat: #A50044;
+  --barca: #004D98;
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--navy);
+  color: var(--offwhite);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+body { touch-action: none; user-select: none; -webkit-user-select: none; }
+button { font: inherit; }
+:where(a, button):focus-visible { outline: 2px solid var(--grenat); outline-offset: 3px; }
+
+.g-canvas, .g-speed {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.g-speed { pointer-events: none; opacity: 0; mix-blend-mode: screen; }
+
+/* grain léger, animé par paliers (aucun coût GPU) */
+.g-grain {
+  position: fixed;
+  inset: -50%;
+  pointer-events: none;
+  opacity: 0.09;
+  background-image: var(--grain);
+  background-size: 180px 180px;
+  animation: g-grain 0.6s steps(4) infinite;
+  z-index: 2;
+}
+@keyframes g-grain {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-6%, 4%); }
+  50% { transform: translate(4%, -7%); }
+  75% { transform: translate(-3%, -2%); }
+  100% { transform: translate(5%, 6%); }
+}
+
+/* ---------- bouton « Passer » ---------- */
+.g-skip {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 0px));
+  right: 16px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.65em 1.1em;
+  border: 1px solid color-mix(in srgb, var(--offwhite) 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--navy) 55%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--offwhite);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+.g-skip:hover { border-color: var(--grenat); background: color-mix(in srgb, var(--grenat) 30%, transparent); }
+
+/* ---------- HUD ---------- */
+.g-hud { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+.g-hud-top {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top, 0px));
+  left: 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.g-brand {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+.g-dist b { font-size: 1rem; }
+.g-stamina {
+  position: absolute;
+  left: 50%;
+  bottom: calc(22px + var(--safe-b));
+  width: min(180px, 40vw);
+  height: 3px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--offwhite) 22%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.g-stamina span { display: block; height: 100%; width: 100%; background: var(--offwhite); transform-origin: left; }
+.g-stamina.is-low span { background: var(--grenat); }
+.g-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(36px + var(--safe-b));
+  margin: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  transition: opacity 0.8s ease;
+}
+.g-hint.is-faded { opacity: 0; }
+.g-cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--offwhite) 70%, transparent);
+}
+
+/* ---------- commandes tactiles ---------- */
+.g-touch { position: fixed; inset: 0; z-index: 6; }
+.g-stick {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--offwhite) 40%, transparent);
+  background: color-mix(in srgb, var(--navy) 35%, transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.g-stick.is-on { opacity: 1; }
+.g-stick span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: var(--offwhite);
+}
+.g-btn {
+  position: absolute;
+  right: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--offwhite) 50%, transparent);
+  background: color-mix(in srgb, var(--navy) 55%, transparent);
+  color: var(--offwhite);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  touch-action: none;
+}
+.g-btn--shoot {
+  bottom: calc(28px + var(--safe-b));
+  width: 92px;
+  height: 92px;
+  background: var(--grenat);
+  border-color: var(--grenat);
+}
+.g-btn--sprint { bottom: calc(136px + var(--safe-b)); right: 34px; width: 70px; height: 70px; }
+.g-btn.is-down { background: var(--offwhite); color: var(--navy); }
+
+/* ---------- écrans ---------- */
+.g-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: 2rem 16px;
+  text-align: center;
+  background: color-mix(in srgb, var(--navy) 78%, transparent);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s;
+}
+.g-screen.is-on { opacity: 1; visibility: visible; }
+.g-kicker, .g-keys {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.g-title {
+  margin: 0;
+  font-weight: 900;
+  font-style: italic;
+  font-stretch: 78%;
+  font-size: clamp(2.6rem, 9vw, 7rem);
+  line-height: 0.88;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.g-title span { display: block; color: transparent; -webkit-text-stroke: 1.5px var(--offwhite); font-size: 1.6em; }
+.g-title--s { font-size: clamp(2.4rem, 8vw, 5.5rem); }
+.g-lead { margin: 0; max-width: 30rem; font-size: clamp(1rem, 2.4vw, 1.25rem); line-height: 1.4; opacity: 0.9; }
+.g-play {
+  margin-top: 0.6rem;
+  padding: 1em 2.6em;
+  border: none;
+  border-radius: 999px;
+  background: var(--offwhite);
+  color: var(--navy);
+  font-weight: 800;
+  font-stretch: 85%;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+.g-play:hover { background: var(--grenat); color: var(--offwhite); transform: translateY(-2px); }
+.g-screen--goal { background: transparent; pointer-events: none; }
+.g-title--goal { font-size: clamp(4rem, 18vw, 14rem); text-shadow: 0 0.04em 0 var(--grenat); }
+
+/* une seule aide selon l'appareil */
+.g-keys--touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .g-keys--desk, .g-hint--desk { display: none; }
+  .g-keys--touch { display: block; }
+  .g-cross { display: none; }
+}
+
+.g-noscript { position: fixed; inset: 0; display: grid; place-items: center; margin: 0; }
+.g-noscript a { color: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  .g-grain { animation: none; }
+}
+
+/* un écran qui disparaît ne bloque plus les appuis pendant son fondu */
+.g-screen:not(.is-on) { pointer-events: none; }
