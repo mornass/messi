@@ -2,7 +2,8 @@
 Étape 1 — Mannequin (add-on MPFB 2) : homme athlétique ~1,70 m en pose A
 (bras ~45° sous l'horizontale), réduit au torse : cou jusqu'à mi-hauteur,
 bras jusqu'à mi-biceps, coupé 5 cm sous l'aine (hanches, haut des cuisses),
-trous bouchés (Fill), maillage fermé vérifié, en collision.
+coupes Bisect + Fill (sans booléen), Voxel Remesh 0.005, lissage léger des
+bords coupés, maillage fermé vérifié, en collision.
 
 1. MPFB crée l'humain (homme, musclé, mince, proportions idéales) ;
 2. rig « default » : les bras sont tournés à l'épaule jusqu'à 45° sous
@@ -192,25 +193,49 @@ def build(previous=None):
 
     cut(all_geom(), (0, 0, head_z), (0, 0, 1))          # tête : au-dessus de la base du cou
     cut(all_geom(), (0, 0, waist_z), (0, 0, -1))        # haut des cuisses (5 cm sous l'aine)
-    # avant-bras : plan perpendiculaire au bras, au coude, appliqué au bras seul
-    lay = bm.verts.layers.deform.verify()
-    names = [g.name for g in body.vertex_groups]
+    # bras : Bisect sur TOUT le maillage (aucune face laissée à moitié coupée),
+    # puis séparation uniquement le long de l'anneau du bras ; le morceau
+    # détaché (fin du bras, avant-bras, main) part avec la passe « plus grande pièce »
+    planes = [((0, 0, head_z), (0, 0, 1)), ((0, 0, waist_z), (0, 0, -1))]
     for side in ("L", "R"):
         up = group_centroid(body, (f"upperarm01.{side}",), co)
         up2 = group_centroid(body, (f"upperarm02.{side}",), co)
         lo = group_centroid(body, (f"lowerarm01.{side}",), co)
-        elbow = (up + up2) / 2                       # mi-biceps (entre les deux moitiés du haut du bras)
+        mid = mathutils.Vector((up + up2) / 2)           # mi-biceps
         d = mathutils.Vector(lo - up).normalized()
-        arm_v = set()
-        for v in bm.verts:
-            w = {names[k]: x for k, x in v[lay].items() if names[k] not in NON_BONE}
-            if w and max(w, key=w.get).startswith((f"upperarm", f"lowerarm", "wrist", "finger",
-                                                   "metacarpal")) and max(w, key=w.get).endswith(side):
-                arm_v.add(v)
-        faces = [f for f in bm.faces if all(v in arm_v for v in f.verts)]
-        edges = list({e for f in faces for e in f.edges})
-        cut(list(arm_v) + edges + faces, tuple(elbow), tuple(d))
-        print(f"[etape1] bras {side} coupé à mi-biceps : point {tuple(round(float(x), 3) for x in elbow)}")
+        res = bmesh.ops.bisect_plane(bm, geom=all_geom(), dist=1e-5, plane_co=mid, plane_no=d,
+                                     clear_outer=False, clear_inner=False)
+        # arêtes de coupe → boucles connexes ; l'anneau du bras = la boucle fermée
+        # la plus proche du point mi-biceps (le plan infini coupe aussi le torse ailleurs)
+        cut_e = {e for e in res["geom_cut"] if isinstance(e, bmesh.types.BMEdge)}
+        comps = []
+        while cut_e:
+            e0 = cut_e.pop()
+            comp, stack = {e0}, [e0]
+            while stack:
+                e = stack.pop()
+                for v in e.verts:
+                    for e2 in v.link_edges:
+                        if e2 in cut_e:
+                            cut_e.discard(e2)
+                            comp.add(e2)
+                            stack.append(e2)
+            comps.append(comp)
+        def closed(c):
+            deg = {}
+            for e in c:
+                for v in e.verts:
+                    deg[v] = deg.get(v, 0) + 1
+            return all(x == 2 for x in deg.values())
+        def dist(c):
+            pts = [v.co for e in c for v in e.verts]
+            return (sum(pts, mathutils.Vector()) / len(pts) - mid).length
+        cands = [c for c in comps if closed(c)] or comps
+        ring = list(min(cands, key=dist))
+        bmesh.ops.split_edges(bm, edges=ring)
+        planes.append((tuple(mid), tuple(d)))
+        print(f"[etape1] bras {side} coupé à mi-biceps : point {tuple(round(float(x), 3) for x in mid)}, "
+              f"anneau {len(ring)} arêtes")
     # restes de la main / avant-bras détachés : supprimés par la passe « plus grande pièce »
     # petits morceaux isolés (yeux, dents…) : on ne garde que la plus grande pièce
     bm.verts.ensure_lookup_table()
@@ -266,6 +291,42 @@ def build(previous=None):
     bm.to_mesh(body.data)
     bm.free()
     body.vertex_groups.clear()
+
+    # Voxel Remesh 0.005 : maillage fermé et régulier
+    bpy.context.view_layer.objects.active = body
+    rm = body.modifiers.new("voxel", "REMESH")
+    rm.mode = "VOXEL"
+    rm.voxel_size = 0.005
+    bpy.ops.object.modifier_apply(modifier=rm.name)
+    # lissage léger (2 itérations) des seuls bords coupés : sommets à moins de 8 mm d'un plan de coupe
+    vg = body.vertex_groups.new(name="bords_coupes")
+    sel = []
+    for v in body.data.vertices:
+        for pc, pn in planes:
+            pc, pn = mathutils.Vector(pc), mathutils.Vector(pn)
+            dist = abs((v.co - pc).dot(pn))
+            arm_plane = abs(pn.z) < 0.99                 # plan incliné = coupe d'un bras
+            if dist < 0.008 and (not arm_plane or (v.co - pc).length < 0.09):
+                sel.append(v.index)
+                break
+    vg.add(sel, 1.0, "REPLACE")
+    sm = body.modifiers.new("lisse_bords", "SMOOTH")
+    sm.factor = 0.5
+    sm.iterations = 2
+    sm.vertex_group = vg.name
+    bpy.ops.object.modifier_apply(modifier=sm.name)
+    body.vertex_groups.remove(body.vertex_groups["bords_coupes"])
+    print(f"[etape1] Voxel Remesh 0.005 appliqué ; lissage 2 itérations sur {len(sel)} sommets des bords coupés")
+
+    # contrôle : trous et arêtes non manifold
+    chk = bmesh.new()
+    chk.from_mesh(body.data)
+    holes = sum(1 for e in chk.edges if e.is_boundary)
+    nm_e = sum(1 for e in chk.edges if not e.is_manifold)
+    nm_v = sum(1 for v in chk.verts if not v.is_manifold)
+    chk.free()
+    print(f"[etape1] contrôle final : bords ouverts {holes}, arêtes non manifold {nm_e}, "
+          f"sommets non manifold {nm_v} → {'FERMÉ (manifold)' if holes == nm_e == nm_v == 0 else 'PROBLÈME'}")
     for mod in list(body.modifiers):
         bpy.ops.object.modifier_apply(modifier=mod.name)
     bpy.ops.object.shade_smooth()
