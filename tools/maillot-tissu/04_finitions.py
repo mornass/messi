@@ -5,10 +5,12 @@
    puis Cloth appliqué à la frame 150 (UV intactes) ; les points de couture
    appariés sont soudés (fusion au milieu de chaque paire).
 2. Solidify : 1,5 mm vers l'intérieur, rim, matériau intérieur plus sombre.
-3. Col : bande séparée (objet « Col ») qui suit exactement le bord de
-   l'encolure, 2 cm de haut, roulée de quelques mm vers l'intérieur,
-   3 mm d'épaisseur (Solidify), avec ses propres UV.
-4. Ourlets : repli de 1,5 cm vers l'intérieur au bas des manches et du maillot.
+3. Col : objet « Col », boucle fermée continue sur le bord de l'encolure
+   (cassures des coutures d'épaule adoucies), 1 cm devant → 1,5 cm dos,
+   inclinée à 60° vers le cou, profil de 3 mm au haut arrondi, base posée sur
+   le tissu avec une petite couture en creux, UV propres.
+4. Ourlets : repli de 1,5 cm vers l'intérieur au bas des manches et du maillot,
+   posé 2,5 mm sous la vraie surface (plus de faces qui traversent).
 5. Mannequin caché au rendu et à la caméra (gardé dans la scène).
 6. Corrective Smooth 0.3 (lissage seul) limité aux zones sans grands plis
    (groupe « lisse » : écart faible entre la surface et sa version très lissée).
@@ -92,6 +94,17 @@ def main(src, dst):
     print(f"[etape4] coutures soudées : {len(loose)} arêtes (écart max {max(gaps) * 1000:.1f} mm, "
           f"moyen {sum(gaps) / len(gaps) * 1000:.1f} mm)")
 
+    # zone des ourlets lissée (groupe « ourlets » + une rangée) : la fin de manche, très
+    # froissée, faisait traverser la face intérieure du Solidify (éclats sombres)
+    dl = bm.verts.layers.deform.active
+    gi = ob.vertex_groups["ourlets"].index
+    hem_zone = {v for v in bm.verts if dl and gi in v[dl]}
+    hem_zone |= {e.other_vert(v) for v in list(hem_zone) for e in v.link_edges}
+    for _ in range(10):
+        bmesh.ops.smooth_vert(bm, verts=list(hem_zone), factor=0.5,
+                              use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    print(f"[etape4] ourlets lissés : {len(hem_zone)} sommets, 10 passes")
+
     # normales vers l'extérieur (le centre du torse est à l'intérieur)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
     ctr = sum((v.co for v in bm.verts), mathutils.Vector()) / len(bm.verts)
@@ -107,9 +120,26 @@ def main(src, dst):
     hems = [L for L in loops[1:] if len(L) > 20]
     print(f"[etape4] bords libres : {len(loops)} boucles (encolure {len(neck)} pts, ourlets "
           f"{[len(L) for L in hems]} pts)")
+    # encolure : les deux cassures (~55°) aux coutures d'épaule sont adoucies
+    # (bord de l'encolure seulement, 3 passes) ; le col suivra ce bord exactement
+    n_ = len(neck)
+    for _ in range(3):
+        new_co = [(neck[k - 1].co + neck[(k + 1) % n_].co) * 0.25 + neck[k].co * 0.5 for k in range(n_)]
+        for v, c_ in zip(neck, new_co):
+            v.co = c_
+    bm.normal_update()
+    kinks = []
+    for k in range(n_):
+        a_, b_, c_ = neck[k - 1].co, neck[k].co, neck[(k + 1) % n_].co
+        kinks.append(math.degrees((b_ - a_).angle(c_ - b_, 0)))
+    print(f"[etape4] encolure adoucie : angle max entre segments {max(kinks):.0f}°")
     neck_co = [v.co.copy() for v in neck]
+    neck_n = [v.normal.copy() for v in neck]
 
-    # 4. ourlets : repli de 1,5 cm vers l'intérieur
+    # 4. ourlets : repli de 1,5 cm vers l'intérieur, posé sur la vraie surface intérieure
+    #    (point le plus proche du maillot, 2,5 mm sous la surface : pas de traversée)
+    from mathutils.bvhtree import BVHTree
+    tree = BVHTree.FromBMesh(bm)
     uvl = bm.loops.layers.uv.active
     FOLD, INSET, ROWS = 0.015, 0.0025, 3
     n_fold = 0
@@ -119,12 +149,17 @@ def main(src, dst):
             inner = [e.other_vert(v) for e in v.link_edges if not e.is_boundary]
             up = (sum((x.co - v.co for x in inner), mathutils.Vector()) / max(len(inner), 1)).normalized()
             uv = next((lp[uvl].uv.copy() for lp in v.link_loops), mathutils.Vector((0, 0)))
-            ring.append((v, up, -v.normal, uv))
+            ring.append((v, up, uv))
         rows = [[r[0] for r in ring]]
         for k in range(1, ROWS + 1):
             t = k / ROWS
-            rows.append([bm.verts.new(v.co + up * FOLD * t + inward * INSET * math.sin(math.pi / 2 * min(1, t * 2)))
-                         for v, up, inward, _ in ring])
+            row = []
+            for v, up, _ in ring:
+                loc, nrm, _, _ = tree.find_nearest(v.co + up * FOLD * t)
+                if nrm.dot(v.normal) < 0:
+                    nrm = -nrm
+                row.append(bm.verts.new(loc - nrm * INSET * min(1, t * 2)))
+            rows.append(row)
         for k in range(ROWS):
             a, b = rows[k], rows[k + 1]
             for i in range(len(a)):
@@ -135,9 +170,9 @@ def main(src, dst):
                     continue
                 for lp in f.loops:
                     idx = (a + b).index(lp.vert) % len(a)
-                    lp[uvl].uv = ring[idx][3]
+                    lp[uvl].uv = ring[idx][2]
                 n_fold += 1
-    print(f"[etape4] ourlets repliés : {len(hems)} bords, {n_fold} faces de repli (1,5 cm vers l'intérieur)")
+    print(f"[etape4] ourlets repliés : {len(hems)} bords, {n_fold} faces de repli (1,5 cm, posées 2,5 mm sous la surface)")
     bm.normal_update()
     bm.to_mesh(me)
     bm.free()
@@ -181,38 +216,62 @@ def main(src, dst):
     so.thickness = 0.0015
     so.offset = -1.0                                     # vers l'intérieur
     so.use_rim = True
+    so.use_even_offset = True                            # épaisseur régulière
+    so.use_quality_normals = True                        # normales de qualité (moins de traversées)
     so.material_offset = 1                               # face intérieure → matériau plus sombre
     so.material_offset_rim = 1
     print(f"[etape4] Corrective Smooth 0.3 sur {int((w > 0.5).sum())} / {len(w)} sommets (grands plis exclus) ; "
           f"Solidify {so.thickness * 1000:.1f} mm vers l'intérieur, rim, intérieur plus sombre")
 
-    # 3. col : bande séparée sur le bord de l'encolure
-    P = np.array(neck_co)
-    c = P.mean(0)
-    seg = np.linalg.norm(np.diff(np.r_[P, P[:1]], axis=0), axis=1)
-    s = np.r_[0, np.cumsum(seg)][:-1] / seg.sum()
-    H, ROLL, R = 0.02, 0.004, 6
+    # 3. col : boucle fermée continue sur le bord de l'encolure, profil arrondi
+    #    hauteur 1 cm devant → 1,5 cm dos, inclinée à 60° vers le cou, 3 mm d'épaisseur,
+    #    haut arrondi (rayon 1,5 mm), petite couture en creux à 1,5 mm de la base
+    P = [mathutils.Vector(p) for p in neck_co]
+    n = len(P)
+    c = sum(P, mathutils.Vector()) / n
+    up = mathutils.Vector((0, 0, 1))
+    T_, R_, GROOVE = 0.003, 0.0015, 0.0005
+    seg = [(P[(i + 1) % n] - P[i]).length for i in range(n)]
+    perim = sum(seg)
+    s_acc = [0.0]
+    for x in seg[:-1]:
+        s_acc.append(s_acc[-1] + x)
+    # profil (s le long de la bande, k épaisseur ; k = 0 face extérieure, -T_ face intérieure)
+    def profile(h):
+        pts = [(0.0, 0.0), (0.0015, -GROOVE), (0.003, 0.0)]
+        s_top = h - R_
+        for f in np.linspace(0, 1, 4)[1:]:
+            pts.append((0.003 + (s_top - 0.003) * f, 0.0))
+        for a in np.linspace(0, math.pi, 7)[1:-1]:          # haut arrondi (bevel)
+            pts.append((s_top + R_ * math.sin(a), -R_ + R_ * math.cos(a)))
+        pts.append((s_top, -T_))
+        for f in np.linspace(1, 0, 4)[1:]:
+            pts.append((s_top * f, -T_))
+        return pts
     cbm = bmesh.new()
     cuv = cbm.loops.layers.uv.new("UVMap")
-    grid = []
-    for k in range(R + 1):
-        t = k / R
-        row = []
-        for p in P:
-            inward = mathutils.Vector((c[0] - p[0], c[1] - p[1], 0)).normalized()
-            q = mathutils.Vector(p) + mathutils.Vector((0, 0, 1)) * H * t + inward * ROLL * t * t
-            row.append(cbm.verts.new(q))
-        grid.append(row)
-    n = len(P)
-    for k in range(R):
-        for i in range(n):
-            j = (i + 1) % n
-            f = cbm.faces.new((grid[k][i], grid[k][j], grid[k + 1][j], grid[k + 1][i]))
+    rings, heights = [], []
+    for i, p in enumerate(P):
+        inward = mathutils.Vector((c.x - p.x, c.y - p.y, 0)).normalized()
+        d = (inward * math.cos(math.radians(60)) + up * math.sin(math.radians(60))).normalized()
+        tang = (P[(i + 1) % n] - P[i - 1]).normalized()
+        nout = tang.cross(d).normalized()
+        if nout.dot(-inward) < 0:
+            nout = -nout
+        back = max(0.0, min(1.0, 0.5 + (p.y - c.y) / (2 * max(abs(q.y - c.y) for q in P))))
+        h = 0.010 + 0.005 * back                              # 1 cm devant → 1,5 cm dos
+        heights.append(h)
+        rings.append([cbm.verts.new(p + d * sv + nout * kv) for sv, kv in profile(h)])
+    m = len(rings[0])
+    for i in range(n):
+        j = (i + 1) % n                                       # boucle fermée : n faces par rang
+        for r in range(m - 1):
+            f = cbm.faces.new((rings[i][r], rings[j][r], rings[j][r + 1], rings[i][r + 1]))
             for lp in f.loops:
-                kk = 0 if lp.vert in grid[k] else 1
-                ii = grid[k + kk].index(lp.vert)
-                u = s[ii] if not (ii == 0 and lp.vert in (grid[k][j], grid[k + 1][j]) and j == 0) else 1.0
-                lp[cuv].uv = (u, (k + kk) / R)
+                ii = i if lp.vert in (rings[i][r], rings[i][r + 1]) else j
+                rr = r if lp.vert in (rings[i][r], rings[j][r]) else r + 1
+                u = s_acc[ii] / perim if not (ii == 0 and i == n - 1) else 1.0
+                lp[cuv].uv = (u, rr / (m - 1))
     cme = bpy.data.meshes.new("Col")
     cbm.to_mesh(cme)
     cbm.free()
@@ -221,14 +280,13 @@ def main(src, dst):
     col = bpy.data.objects.new("Col", cme)
     sc.collection.objects.link(col)
     cme.materials.append(outer)
-    cme.materials.append(inner)
-    cs2 = col.modifiers.new("Solidify", "SOLIDIFY")
-    cs2.thickness = 0.003
-    cs2.offset = -1.0
-    cs2.use_rim = True
-    cs2.material_offset = 1
-    print(f"[etape4] col : {n} pts sur l'encolure, {R} rangs, 2 cm de haut, roulé {ROLL * 1000:.0f} mm, "
-          f"3 mm d'épaisseur, UV propres ; centre encolure {tuple(round(float(x), 3) for x in c)}")
+    cbm2 = bmesh.new()
+    cbm2.from_mesh(cme)
+    breaks = sum(1 for e in cbm2.edges if e.is_boundary)
+    cbm2.free()
+    print(f"[etape4] col : boucle fermée de {n} pts (bords libres : {breaks} = base extérieure + base intérieure), "
+          f"hauteur {min(heights) * 100:.1f} cm devant → {max(heights) * 100:.1f} cm dos, 60°, 3 mm, haut arrondi, "
+          f"couture en creux ; centre {tuple(round(float(x), 3) for x in c)}")
 
     # 5. mannequin caché au rendu et à la caméra, gardé dans la scène
     man.hide_render = True
