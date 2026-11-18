@@ -41,6 +41,7 @@ def capture(blend, out):
 
     sun = bpy.data.lights.new("soleil", "SUN")
     sun.energy = 3.0
+    sun.angle = math.radians(30)      # soleil large : ombres douces (pas de fausses « encoches »)
     so = bpy.data.objects.new("soleil", sun)
     so.rotation_euler = (math.radians(50), 0, math.radians(30))
     sc.collection.objects.link(so)

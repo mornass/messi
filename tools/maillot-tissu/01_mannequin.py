@@ -1,7 +1,8 @@
 """
 Étape 1 — Mannequin (add-on MPFB 2) : homme athlétique ~1,70 m en pose A
 (bras ~45° sous l'horizontale), réduit au torse : cou jusqu'à mi-hauteur,
-bras jusqu'à mi-biceps, coupé sous la taille, trous bouchés, en collision.
+bras jusqu'à mi-biceps, coupé 5 cm sous l'aine (hanches, haut des cuisses),
+trous bouchés (Fill), maillage fermé vérifié, en collision.
 
 1. MPFB crée l'humain (homme, musclé, mince, proportions idéales) ;
 2. rig « default » : les bras sont tournés à l'épaule jusqu'à 45° sous
@@ -139,6 +140,12 @@ def build(previous=None):
         else:
             body.modifiers.remove(mod)
     bpy.data.objects.remove(rig)
+    # une subdivision avant les coupes : bords de coupe plus nets (cou, cuisses, bras)
+    sub = body.modifiers.new("subdiv", "SUBSURF")
+    sub.levels = 1
+    sub.render_levels = 1
+    bpy.context.view_layer.objects.active = body
+    bpy.ops.object.modifier_apply(modifier=sub.name)
 
     # repères pour les coupes
     co = np.array([v.co for v in body.data.vertices])
@@ -155,8 +162,13 @@ def build(previous=None):
                              if dominant(v) in ("neck02", "neck03")], 90)
     print(f"[etape1] cou : bas z={neck_lo:.3f}, haut z={neck_hi:.3f}, coupe à mi-hauteur z={(neck_lo + neck_hi) / 2:.3f}")
     head_z = (neck_lo + neck_hi) / 2
-    waist_z = np.percentile([co[v.index][2] for v in body.data.vertices
-                             if dominant(v).startswith("spine04")], 50)
+    # aine : point le plus bas de l'entrejambe (sommets du milieu, |x| < 1 cm),
+    # coupe 5 cm plus bas → hanches et haut des cuisses conservés
+    is_helper = np.array([any(g.group in helper and g.weight > 0 for g in v.groups) for v in body.data.vertices])
+    mid = co[(np.abs(co[:, 0]) < 0.01) & (co[:, 2] > 0.5) & ~is_helper]
+    groin_z = float(mid[:, 2].min())
+    waist_z = groin_z - 0.05
+    print(f"[etape1] aine z={groin_z:.3f} → coupe du bas z={waist_z:.3f} (5 cm sous l'aine)")
 
     # 1) géométrie d'aide MPFB (vêtements d'essai, cubes d'articulation) : supprimée
     import bmesh
@@ -179,7 +191,7 @@ def build(previous=None):
         return bm.verts[:] + bm.edges[:] + bm.faces[:]
 
     cut(all_geom(), (0, 0, head_z), (0, 0, 1))          # tête : au-dessus de la base du cou
-    cut(all_geom(), (0, 0, waist_z), (0, 0, -1))        # sous la taille
+    cut(all_geom(), (0, 0, waist_z), (0, 0, -1))        # haut des cuisses (5 cm sous l'aine)
     # avant-bras : plan perpendiculaire au bras, au coude, appliqué au bras seul
     lay = bm.verts.layers.deform.verify()
     names = [g.name for g in body.vertex_groups]
@@ -220,12 +232,37 @@ def build(previous=None):
     parts.sort(key=len, reverse=True)
     for comp in parts[1:]:
         bmesh.ops.delete(bm, geom=comp, context="VERTS")
-    # trous bouchés : cou, taille, deux bras (faces de bouchage triangulées)
-    border = [e for e in bm.edges if e.is_boundary]
-    filled = bmesh.ops.holes_fill(bm, edges=border, sides=0)["faces"]
-    bmesh.ops.triangulate(bm, faces=filled)
-    print(f"[etape1] trous bouchés : {len(filled)} ; bords ouverts restants : "
-          f"{sum(1 for e in bm.edges if e.is_boundary)}")
+    # ouvertures : boucles de bord, une par trou (cou, 2 bras, 2 cuisses)
+    border = {e for e in bm.edges if e.is_boundary}
+    loops = []
+    while border:
+        e0 = border.pop()
+        loop, stack = {e0}, [e0]
+        while stack:
+            e = stack.pop()
+            for v in e.verts:
+                for e2 in v.link_edges:
+                    if e2 in border:
+                        border.discard(e2)
+                        loop.add(e2)
+                        stack.append(e2)
+        loops.append(loop)
+    names = []
+    for loop in loops:
+        zs = [v.co.z for e in loop for v in e.verts]
+        xs = [v.co.x for e in loop for v in e.verts]
+        z, x = sum(zs) / len(zs), sum(xs) / len(xs)
+        names.append("cou" if z > 1.4 else "cuisse" if z < 1.0 else ("bras G" if x > 0 else "bras D"))
+    print(f"[etape1] ouvertures avant Fill : {len(loops)} → {sorted(names)}")
+    # Fill (remplissage triangulé de chaque boucle)
+    for loop in loops:
+        bmesh.ops.triangle_fill(bm, edges=list(loop), use_beauty=True)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    nm_edges = [e for e in bm.edges if not e.is_manifold]
+    nm_verts = [v for v in bm.verts if not v.is_manifold]
+    print(f"[etape1] après Fill : bords ouverts {sum(1 for e in bm.edges if e.is_boundary)}, "
+          f"arêtes non manifold {len(nm_edges)}, sommets non manifold {len(nm_verts)} → "
+          f"{'FERMÉ (manifold)' if not nm_edges and not nm_verts else 'NON FERMÉ'}")
     bm.to_mesh(body.data)
     bm.free()
     body.vertex_groups.clear()
@@ -253,7 +290,7 @@ if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "etape1.blend"
     b, h, ang, wz, hz = build(previous=out)
     d = b.dimensions
-    print(f"[mannequin] humain {h:.3f} m, bras {ang} ° sous l'horizontale, coupe taille z={wz:.3f}, "
+    print(f"[mannequin] humain {h:.3f} m, bras {ang} ° sous l'horizontale, coupe du bas z={wz:.3f}, "
           f"cou z={hz:.3f} ; {b.name} : {len(b.data.polygons)} faces, {d.x:.3f} × {d.y:.3f} × {d.z:.3f} m, "
           f"modificateurs {[m.type for m in b.modifiers]}, thickness_outer={b.collision.thickness_outer}")
     print(f"[etape1] objets dans la scène : {[o.name for o in bpy.context.scene.objects]}")
