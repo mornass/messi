@@ -54,13 +54,15 @@ PX = RES * S                     # pixels par mètre (3277)
 ROSE_CLAIR = (247, 200, 214)     # mesurés sur la référence (bande claire / foncée)
 ROSE_FONCE = (240, 160, 186)
 NOIR = (24, 22, 23)
-RAYURE = 0.115                   # largeur d'une rayure (m)
+RAYURE = 0.07                    # largeur d'une rayure (m), d'après la photo de face
 HALF_W = 0.25                    # demi-largeur du patron (W = 0,50)
 ROSE_DOS = (240, 195, 206)       # dos uni (mesuré sur la référence de dos)
 ROSE_PALE = (243, 221, 226)      # panneaux latéraux et dessous des manches (référence)
-# 3 bandes d'épaule (8 mm, intervalles 6 mm) côté devant, contre la couture d'épaule :
-# distance à la couture (m), > 0 côté devant ; rien sur le panneau du dos
-BANDES = [(0.002, 0.010), (0.016, 0.024), (0.030, 0.038)]
+# 3 bandes d'épaule (12 mm, intervalles 8 mm) côté devant, du col vers l'avant de la manche :
+# distance à la couture d'épaule (m), > 0 côté devant ; rien sur le panneau du dos
+BANDES = [(0.015, 0.027), (0.035, 0.047), (0.055, 0.067)]
+OR_PATCH = (226, 196, 128)       # patch Club World Cup : disque doré
+BLEU_PATCH = (38, 86, 168)       # patch « Football Unites the World »
 # panneau latéral clair : largeur depuis la couture de côté, 4,5 cm sous le bras → 0 à 52 cm
 LAT_Y0, LAT_Y1, LAT_W = -0.24, -0.52, 0.045
 SOUS_MANCHE = 0.12               # dessous de manche clair au-delà de 12 cm de la ligne d'épaule
@@ -143,7 +145,7 @@ def paint_base(fr):
         xs = -(u - f["u0"]) / S                        # > 0 côté devant
         k = np.floor((np.abs(xs) + RAYURE / 2) / RAYURE)
         dark |= reg & (k % 2 == 1) & (xs > 0)          # moitié avant : rayures du devant
-        dos |= reg & (xs <= -0.0575)                   # moitié arrière : rose uni du dos
+        dos |= reg & (xs <= -RAYURE / 2)               # moitié arrière : rose uni du dos
         pale |= reg & (np.abs(xs) > SOUS_MANCHE)
         for b0, b1 in BANDES:
             black |= reg & (xs > b0) & (xs < b1)
@@ -231,6 +233,40 @@ def text_inline(txt, cap_h_px, weight, track=0.15, ligne=0.07):
     im = Image.new("RGBA", m.size, NOIR + (0,))
     im.putalpha(Image.fromarray(alpha))
     return im.resize((max(1, round(m.width * scale)), max(1, round(m.height * scale))), Image.LANCZOS)
+
+
+def patch_cwc(diam_px):
+    """Patch Club World Cup 2025 : disque doré, logo officiel (Wikimedia) en or foncé."""
+    lg = Image.open(os.path.join(LOGOS, "club-world-cup-2025.png")).convert("RGBA")
+    lg = lg.crop(lg.getbbox())
+    d = int(diam_px * 4)
+    im = Image.new("RGBA", (d, d), (0, 0, 0, 0))
+    dr = ImageDraw.Draw(im)
+    dr.ellipse((0, 0, d - 1, d - 1), fill=OR_PATCH + (255,))
+    dr.ellipse((d * 0.03, d * 0.03, d * 0.97, d * 0.97), outline=(176, 138, 60, 255), width=max(1, d // 60))
+    s = d * 0.72 / max(lg.size)
+    lg = lg.resize((round(lg.width * s), round(lg.height * s)), Image.LANCZOS)
+    a = lg.getchannel("A")
+    dark = Image.new("RGBA", lg.size, (120, 88, 24, 255))
+    dark.putalpha(a)
+    im.alpha_composite(dark, ((d - lg.width) // 2, (d - lg.height) // 2))
+    return im.resize((round(diam_px), round(diam_px)), Image.LANCZOS)
+
+
+def patch_unites(w_px, h_px):
+    """Patch « Football Unites the World » : rectangle bleu, texte blanc."""
+    W, H = int(w_px * 4), int(h_px * 4)
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    dr = ImageDraw.Draw(im)
+    dr.rounded_rectangle((0, 0, W - 1, H - 1), radius=H // 6, fill=BLEU_PATCH + (255,))
+    dr.rounded_rectangle((H * 0.06, H * 0.06, W - H * 0.06, H - H * 0.06), radius=H // 8,
+                         outline=(255, 255, 255, 255), width=max(1, H // 30))
+    for txt, cap, yc in (("FOOTBALL UNITES", 0.30, 0.36), ("THE WORLD", 0.20, 0.70)):
+        t = text_plain(txt, H * cap, 600, track=0.08)
+        wt = Image.new("RGBA", t.size, (255, 255, 255, 255))
+        wt.putalpha(t.getchannel("A"))
+        im.alpha_composite(wt, (int((W - t.width) / 2), int(H * yc - t.height / 2)))
+    return im.resize((round(w_px), round(h_px)), Image.LANCZOS)
 
 
 def text_plain(txt, cap_h_px, weight=600, track=0.0):
@@ -445,8 +481,10 @@ def srgb_to_linear(c):
     return tuple(np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)) + (1.0,)
 
 
-def collar_material():
-    """Bord-côte du col : rose soutenu uni, côtes 1×1 perpendiculaires à l'encolure (pas 2 mm)."""
+def collar_material(v_lo, v_hi):
+    """Bord-côte du col : rose soutenu, côtes 1×1 perpendiculaires à l'encolure (pas 2 mm),
+    liseré noir sur le haut arrondi (profil du col : base → face extérieure → haut arrondi
+    → face intérieure ; le haut arrondi occupe 40 → 74 % du paramètre v du profil)."""
     mat = bpy.data.materials.get("col_cotes") or bpy.data.materials.new("col_cotes")
     mat.use_nodes = True
     N, L = mat.node_tree.nodes, mat.node_tree.links
@@ -454,7 +492,32 @@ def collar_material():
     out = N.new("ShaderNodeOutputMaterial")
     bsdf = N.new("ShaderNodeBsdfPrincipled")
     L.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    bsdf.inputs["Base Color"].default_value = srgb_to_linear(ROSE_COL)
+    uvn0 = N.new("ShaderNodeUVMap")
+    uvn0.uv_map = "UVMap"
+    sep = N.new("ShaderNodeSeparateXYZ")
+    L.new(uvn0.outputs["UV"], sep.inputs["Vector"])
+    fr = N.new("ShaderNodeMapRange")                  # v du profil, 0 (base) → 1
+    fr.inputs["From Min"].default_value = v_lo
+    fr.inputs["From Max"].default_value = v_hi
+    L.new(sep.outputs["Y"], fr.inputs["Value"])
+    a = N.new("ShaderNodeMath")
+    a.operation = "GREATER_THAN"
+    a.inputs[1].default_value = 0.40
+    b = N.new("ShaderNodeMath")
+    b.operation = "LESS_THAN"
+    b.inputs[1].default_value = 0.74
+    L.new(fr.outputs["Result"], a.inputs[0])
+    L.new(fr.outputs["Result"], b.inputs[0])
+    band = N.new("ShaderNodeMath")
+    band.operation = "MULTIPLY"
+    L.new(a.outputs["Value"], band.inputs[0])
+    L.new(b.outputs["Value"], band.inputs[1])
+    mix = N.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    mix.inputs["A"].default_value = srgb_to_linear(ROSE_COL)
+    mix.inputs["B"].default_value = srgb_to_linear(NOIR)
+    L.new(band.outputs["Value"], mix.inputs["Factor"])
+    L.new(mix.outputs["Result"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = 0.7
     bsdf.inputs["Sheen Weight"].default_value = 0.4
     bsdf.inputs["Sheen Roughness"].default_value = 0.5
@@ -500,6 +563,12 @@ def main(src, dst, texdir):
               mirror=True, label="MESSI")
     lay.place(text_inline("10", 0.25 * PX, 500, track=0.06), ds, 0.0, -0.285, height=0.25,
               mirror=True, label="10")
+    # manche droite du porteur (manche_D), côté extérieur-avant, sous les 3 bandes ;
+    # vue de l'extérieur, le devant (u plus petit) est à droite : patchs écrits en miroir
+    md = fr["manche_D"]
+    lay.place(patch_cwc(0.075 * PX), md, -0.105, -0.075, width=0.075, mirror=True, label="patch Club World Cup")
+    lay.place(patch_unites(0.065 * PX, 0.022 * PX), md, -0.105, -0.140, width=0.065, mirror=True,
+              label="patch Football Unites the World")
     for line in lay.log:
         print("[etape5]", line)
 
@@ -522,7 +591,8 @@ def main(src, dst, texdir):
     material("tissu_interieur", tex, interior=True)
     col = bpy.data.objects["Col"]
     col.data.materials.clear()
-    col.data.materials.append(collar_material())
+    cuv = [d.uv[1] for d in col.data.uv_layers.active.data]
+    col.data.materials.append(collar_material(min(cuv), max(cuv)))
     bpy.ops.wm.save_as_mainfile(filepath=dst)
     print("[etape5] matériaux tissu_patron / tissu_interieur prêts ->", dst)
 

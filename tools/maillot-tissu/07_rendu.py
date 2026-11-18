@@ -83,7 +83,7 @@ def crest_point(ob):
     return best
 
 
-VUES = {"face": 0, "dos": 180, "3-4": 40, "3-4dos": 140}
+VUES = {"face": 0, "dos": 180, "3-4": 40, "3-4dos": 140, "3-4d": -40}
 
 
 def main(blend, out, samples=96, vues=("face", "dos", "3-4", "ecusson")):
