@@ -1,6 +1,7 @@
 """
-Étape 1 — Mannequin (add-on MPFB 2) : homme athlétique ~1,70 m, bras à ~45°
-sous l'horizontale, réduit au torse + épaules + haut des bras, en collision.
+Étape 1 — Mannequin (add-on MPFB 2) : homme athlétique ~1,70 m en pose A
+(bras ~45° sous l'horizontale), réduit au torse : cou jusqu'à mi-hauteur,
+bras jusqu'à mi-biceps, coupé sous la taille, trous bouchés, en collision.
 
 1. MPFB crée l'humain (homme, musclé, mince, proportions idéales) ;
 2. rig « default » : les bras sont tournés à l'épaule jusqu'à 45° sous
@@ -77,9 +78,22 @@ def rotate_bone_world(rig, bone, axis, angle):
     bpy.context.view_layer.update()
 
 
-def build():
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    addon_utils.enable("bl_ext.user_default.mpfb", default_set=True)
+def build(previous=None):
+    import os
+    # 2. ancien mannequin : ouvert puis supprimé de la scène
+    if previous and os.path.exists(previous):
+        bpy.ops.wm.open_mainfile(filepath=previous)
+        old = [o.name for o in bpy.data.objects]
+        for o in list(bpy.data.objects):
+            bpy.data.objects.remove(o)
+        print(f"[etape1] ancienne scène {os.path.basename(previous)} : supprimés {old}")
+    else:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+    # 1. MPFB activé : version lue dans son manifeste
+    mod = addon_utils.enable("bl_ext.user_default.mpfb", default_set=True)
+    manifest = os.path.join(os.path.dirname(mod.__file__), "blender_manifest.toml")
+    version = next(l.split("=")[1].strip().strip('"') for l in open(manifest) if l.startswith("version"))
+    print(f"[etape1] MPFB activé : {mod.__name__} version {version}")
     from bl_ext.user_default.mpfb.services.humanservice import HumanService
 
     macro = {"gender": 1.0, "age": 0.5, "muscle": 0.85, "weight": 0.45, "proportions": 0.9,
@@ -135,8 +149,12 @@ def build():
         return body.vertex_groups[max(gs, key=lambda x: x.weight).group].name if gs else ""
 
     helper = {gi.get("HelperGeometry"), gi.get("JointCubes")} - {None}
-    neck01 = [co[v.index][2] for v in body.data.vertices if dominant(v) == "neck01"]
-    head_z = np.percentile(neck01, 60)                 # garde la base du cou
+    # cou à mi-hauteur : entre le bas du cou (neck01) et le haut (neck03, sous la tête)
+    neck_lo = np.percentile([co[v.index][2] for v in body.data.vertices if dominant(v) == "neck01"], 10)
+    neck_hi = np.percentile([co[v.index][2] for v in body.data.vertices
+                             if dominant(v) in ("neck02", "neck03")], 90)
+    print(f"[etape1] cou : bas z={neck_lo:.3f}, haut z={neck_hi:.3f}, coupe à mi-hauteur z={(neck_lo + neck_hi) / 2:.3f}")
+    head_z = (neck_lo + neck_hi) / 2
     waist_z = np.percentile([co[v.index][2] for v in body.data.vertices
                              if dominant(v).startswith("spine04")], 50)
 
@@ -167,8 +185,9 @@ def build():
     names = [g.name for g in body.vertex_groups]
     for side in ("L", "R"):
         up = group_centroid(body, (f"upperarm01.{side}",), co)
+        up2 = group_centroid(body, (f"upperarm02.{side}",), co)
         lo = group_centroid(body, (f"lowerarm01.{side}",), co)
-        elbow = (group_centroid(body, (f"upperarm02.{side}",), co) + lo) / 2
+        elbow = (up + up2) / 2                       # mi-biceps (entre les deux moitiés du haut du bras)
         d = mathutils.Vector(lo - up).normalized()
         arm_v = set()
         for v in bm.verts:
@@ -179,6 +198,7 @@ def build():
         faces = [f for f in bm.faces if all(v in arm_v for v in f.verts)]
         edges = list({e for f in faces for e in f.edges})
         cut(list(arm_v) + edges + faces, tuple(elbow), tuple(d))
+        print(f"[etape1] bras {side} coupé à mi-biceps : point {tuple(round(float(x), 3) for x in elbow)}")
     # restes de la main / avant-bras détachés : supprimés par la passe « plus grande pièce »
     # petits morceaux isolés (yeux, dents…) : on ne garde que la plus grande pièce
     bm.verts.ensure_lookup_table()
@@ -200,6 +220,12 @@ def build():
     parts.sort(key=len, reverse=True)
     for comp in parts[1:]:
         bmesh.ops.delete(bm, geom=comp, context="VERTS")
+    # trous bouchés : cou, taille, deux bras (faces de bouchage triangulées)
+    border = [e for e in bm.edges if e.is_boundary]
+    filled = bmesh.ops.holes_fill(bm, edges=border, sides=0)["faces"]
+    bmesh.ops.triangulate(bm, faces=filled)
+    print(f"[etape1] trous bouchés : {len(filled)} ; bords ouverts restants : "
+          f"{sum(1 for e in bm.edges if e.is_boundary)}")
     bm.to_mesh(body.data)
     bm.free()
     body.vertex_groups.clear()
@@ -225,9 +251,11 @@ def build():
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "etape1.blend"
-    b, h, ang, wz, hz = build()
+    b, h, ang, wz, hz = build(previous=out)
     d = b.dimensions
     print(f"[mannequin] humain {h:.3f} m, bras {ang} ° sous l'horizontale, coupe taille z={wz:.3f}, "
           f"cou z={hz:.3f} ; {b.name} : {len(b.data.polygons)} faces, {d.x:.3f} × {d.y:.3f} × {d.z:.3f} m, "
           f"modificateurs {[m.type for m in b.modifiers]}, thickness_outer={b.collision.thickness_outer}")
+    print(f"[etape1] objets dans la scène : {[o.name for o in bpy.context.scene.objects]}")
+    print(f"[etape1] OBJET « {b.name} » : {len(b.data.vertices)} sommets, {len(b.data.polygons)} faces")
     bpy.ops.wm.save_as_mainfile(filepath=out)
