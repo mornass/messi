@@ -7,6 +7,7 @@ Usage : python tools/maillot-tissu/capture.py scene.blend planche.png [--dos] [-
   --plat : éclairage plat (sans ombres portées, lumière d'ambiance seule) pour
            vérifier la géométrie (trous, encoches), sur fond sombre
   --zoom x,y,z,taille : gros plan centré sur ce point
+  --frame N : rendu à la frame N (simulation cuite)
 """
 import math
 import sys
@@ -17,9 +18,12 @@ import numpy as np
 from PIL import Image
 
 
-def capture(blend, out, dos=False, plat=False, zoom=None):
+def capture(blend, out, dos=False, plat=False, zoom=None, frame=None):
     bpy.ops.wm.open_mainfile(filepath=blend)
     sc = bpy.context.scene
+    if frame is not None:                     # simulation : on lit le cache à cette frame
+        for f in range(sc.frame_start, frame + 1):
+            sc.frame_set(f)
     sc.render.engine = "CYCLES"
     sc.cycles.device = "CPU"
     sc.cycles.samples = 24
@@ -37,9 +41,11 @@ def capture(blend, out, dos=False, plat=False, zoom=None):
 
     # cadrage sur tous les objets maillés visibles
     pts = []
+    dg = bpy.context.evaluated_depsgraph_get()
     for o in sc.objects:
         if o.type == "MESH" and not o.hide_render:
-            pts += [o.matrix_world @ mathutils.Vector(c) for c in o.bound_box]
+            ev = o.evaluated_get(dg)
+            pts += [ev.matrix_world @ mathutils.Vector(c) for c in ev.bound_box]
     lo = mathutils.Vector([min(p[i] for p in pts) for i in range(3)])
     hi = mathutils.Vector([max(p[i] for p in pts) for i in range(3)])
     ctr = (lo + hi) / 2
@@ -95,5 +101,5 @@ if __name__ == "__main__":
     zoom = None
     if "--zoom" in sys.argv:
         zoom = [float(x) for x in sys.argv[sys.argv.index("--zoom") + 1].split(",")]
-    views = None
-    capture(sys.argv[1], sys.argv[2], dos="--dos" in sys.argv, plat="--plat" in sys.argv, zoom=zoom)
+    frame = int(sys.argv[sys.argv.index("--frame") + 1]) if "--frame" in sys.argv else None
+    capture(sys.argv[1], sys.argv[2], dos="--dos" in sys.argv, plat="--plat" in sys.argv, zoom=zoom, frame=frame)

@@ -222,18 +222,32 @@ def main(src, dst, uv_png):
         # dessous de manche : bord gauche ↔ bord droit
         seams[f"dessous {tag}"] = [(Sg[j][0], Sg[j][-1]) for j in range(len(Sg) - 1)]
 
+    # étiquettes : identifiant de couture sur chaque arête, panneau sur chaque sommet
+    seam_names = list(seams.keys())
+    cid = bm.edges.layers.int.new("couture_id")
     n_edges = 0
-    for name, pairs in seams.items():
+    for k, (name, pairs) in enumerate(seams.items()):
         for a, b in pairs:
             if a is not b and not any(e for e in a.link_edges if e.other_vert(a) is b):
-                bm.edges.new((a, b))
+                e = bm.edges.new((a, b))
+                e[cid] = k + 1                                # 0 = arête de tissu
                 n_edges += 1
+    panel_of = {}
+    for tag, g in grids.items():
+        for row in g:
+            for v in row:
+                panel_of[v] = tag
+    bm.verts.index_update()
+    panel_idx = {tag: [v.index for v, t in panel_of.items() if t == tag] for tag in grids}
 
     me = bpy.data.meshes.new("Maillot")
     bm.to_mesh(me)
     bm.free()
     ob = bpy.data.objects.new("Maillot", me)
     bpy.context.scene.collection.objects.link(ob)
+    ob["coutures"] = seam_names                               # couture_id k ↔ seam_names[k - 1]
+    for tag, idx in panel_idx.items():
+        ob.vertex_groups.new(name=tag).add(idx, 1.0, "REPLACE")
     mat = bpy.data.materials.new("tissu_patron")
     mat.diffuse_color = (0.96, 0.72, 0.80, 1)
     mat.use_nodes = True
