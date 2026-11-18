@@ -5,7 +5,7 @@ face, dos, 3/4, et gros plan sur l'écusson. Planche PNG + images séparées.
 Le gros plan vise le point 3D dont les UV sont le centre de l'écusson
 (retrouvé sur le maillage évalué, face extérieure tournée vers l'avant).
 
-Usage : python tools/maillot-tissu/07_rendu.py etape6.blend sortie.png [--samples N]
+Usage : python tools/maillot-tissu/07_rendu.py etape6.blend sortie.png [--samples N] [--vues face,dos,3-4,3-4dos,ecusson]
 """
 import math
 import sys
@@ -83,7 +83,10 @@ def crest_point(ob):
     return best
 
 
-def main(blend, out, samples=96):
+VUES = {"face": 0, "dos": 180, "3-4": 40, "3-4dos": 140}
+
+
+def main(blend, out, samples=96, vues=("face", "dos", "3-4", "ecusson")):
     bpy.ops.wm.open_mainfile(filepath=blend)
     sc = bpy.context.scene
     studio(sc, samples)
@@ -104,15 +107,15 @@ def main(blend, out, samples=96):
     sc.camera = cam
     dist = size * 3.2
     shots = []
-    for name, az in (("face", 0), ("dos", 180), ("3-4", 40)):
-        a = math.radians(az)
+    for name in [v for v in vues if v in VUES]:
+        a = math.radians(VUES[name])
         cam.location = ctr + mathutils.Vector((math.sin(a) * dist, -math.cos(a) * dist, size * 0.15))
         aim(cam, ctr)
         sc.render.filepath = f"{out}.{name}.png"
         bpy.ops.render.render(write_still=True)
         shots.append(sc.render.filepath)
 
-    hit = crest_point(bpy.data.objects["Maillot"])
+    hit = crest_point(bpy.data.objects["Maillot"]) if "ecusson" in vues else None
     if hit:
         p, n = hit
         print(f"[rendu] écusson : point {tuple(round(x, 3) for x in p)}, normale {tuple(round(x, 2) for x in n)}")
@@ -126,7 +129,7 @@ def main(blend, out, samples=96):
         sc.render.filepath = f"{out}.ecusson.png"
         bpy.ops.render.render(write_still=True)
         shots.append(sc.render.filepath)
-    else:
+    elif "ecusson" in vues:
         print("[rendu] écusson introuvable dans les UV")
 
     ims = [Image.open(s).convert("RGB") for s in shots]
@@ -143,4 +146,5 @@ def main(blend, out, samples=96):
 
 if __name__ == "__main__":
     n = int(sys.argv[sys.argv.index("--samples") + 1]) if "--samples" in sys.argv else 96
-    main(sys.argv[1], sys.argv[2], n)
+    v = sys.argv[sys.argv.index("--vues") + 1].split(",") if "--vues" in sys.argv else ("face", "dos", "3-4", "ecusson")
+    main(sys.argv[1], sys.argv[2], n, v)

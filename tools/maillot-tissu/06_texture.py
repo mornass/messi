@@ -40,11 +40,12 @@ import sys
 
 import bpy
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 LOGOS = os.path.join(ROOT, "assets", "logos")
 FONT = os.path.join(ROOT, "assets", "fonts", "bebas-neue.woff")
+FONT_FIN = os.path.join(ROOT, "assets", "fonts", "big-shoulders-{}.woff")   # fine, condensée (OFL)
 
 RES = 4096
 S = 1 / 1.25                     # UV par mètre
@@ -55,9 +56,14 @@ ROSE_FONCE = (240, 160, 186)
 NOIR = (24, 22, 23)
 RAYURE = 0.115                   # largeur d'une rayure (m)
 HALF_W = 0.25                    # demi-largeur du patron (W = 0,50)
-# 3 bandes d'épaule (8 mm, intervalles 6 mm) à cheval sur la couture d'épaule :
-# distance signée à la couture (m), > 0 côté devant, < 0 côté dos
-BANDES = [(-0.018, -0.010), (-0.004, 0.004), (0.010, 0.018)]
+ROSE_DOS = (240, 195, 206)       # dos uni (mesuré sur la référence de dos)
+ROSE_PALE = (243, 221, 226)      # panneaux latéraux et dessous des manches (référence)
+# 3 bandes d'épaule (8 mm, intervalles 6 mm) côté devant, contre la couture d'épaule :
+# distance à la couture (m), > 0 côté devant ; rien sur le panneau du dos
+BANDES = [(0.002, 0.010), (0.016, 0.024), (0.030, 0.038)]
+# panneau latéral clair : largeur depuis la couture de côté, 4,5 cm sous le bras → 0 à 52 cm
+LAT_Y0, LAT_Y1, LAT_W = -0.24, -0.52, 0.045
+SOUS_MANCHE = 0.12               # dessous de manche clair au-delà de 12 cm de la ligne d'épaule
 ROSE_COL = (238, 164, 190)       # bord-côte du col : rose soutenu, comme sur la référence
 NECK, SHOULDER = (0.085, 0.0), (0.21, -0.045)
 
@@ -99,16 +105,24 @@ def paint_base(fr):
     col[:] = ROSE_CLAIR
     dark = np.zeros((RES, RES), bool)
     black = np.zeros((RES, RES), bool)
+    dos = np.zeros((RES, RES), bool)
+    pale = np.zeros((RES, RES), bool)
     for t in ("devant", "dos"):
         f = fr[t]
         reg = (np.abs(u - f["u0"]) < HALF_W * S + 0.01) & (v > f["vmin"] - 0.01) & (v < f["v0"] + 0.01)
         x = (u - f["u0"]) / S
-        k = np.floor((np.abs(x) + RAYURE / 2) / RAYURE)
-        dark |= reg & (k % 2 == 1)
-        # 3 bandes sur chaque épaule, à cheval sur la couture : la partie t > 0 est sur le devant,
-        # la partie t < 0 sur le dos (même couture, même longueur) → aucune coupure à la couture
         y = (v - f["v0"]) / S
-        sign = 1 if t == "devant" else -1
+        if t == "devant":                              # rayures sur le devant seulement
+            k = np.floor((np.abs(x) + RAYURE / 2) / RAYURE)
+            dark |= reg & (k % 2 == 1)
+        else:                                          # dos : rose uni
+            dos |= reg
+        # panneau latéral clair sous le bras, contre la couture de côté (devant et dos)
+        r = np.clip((y - LAT_Y1) / (LAT_Y0 - LAT_Y1), 0, 1)
+        pale |= reg & (y < LAT_Y0 + 0.01) & (r > 0) & (np.abs(x) > HALF_W - LAT_W * np.sqrt(r))
+        if t == "dos":
+            continue
+        # 3 bandes sur chaque épaule, côté devant, le long de la couture
         for s in (-1, 1):
             N = np.array((s * NECK[0], NECK[1]))
             P = np.array((s * SHOULDER[0], SHOULDER[1]))
@@ -117,21 +131,27 @@ def paint_base(fr):
             if n[1] > 0:                               # normale vers l'intérieur du panneau
                 n = -n
             a = (x - N[0]) * d[0] + (y - N[1]) * d[1]
-            tt = sign * ((x - N[0]) * n[0] + (y - N[1]) * n[1])
+            tt = (x - N[0]) * n[0] + (y - N[1]) * n[1]
             along = reg & (a > -0.03) & (a < np.linalg.norm(P - N) + 0.04)
             for b0, b1 in BANDES:
                 black |= along & (tt > b0) & (tt < b1)
     for t in ("manche_D", "manche_G"):
-        # mêmes rayures que le corps, dans le sens de la manche, bande claire centrée sur
-        # la ligne d'épaule ; les 3 bandes continuent dessus, à cheval sur cette ligne
+        # mêmes rayures que le devant, dans le sens de la manche, bande claire centrée sur
+        # la ligne d'épaule ; les 3 bandes continuent côté devant ; dessous de manche clair
         f = fr[t]
         reg = (u > f["umin"] - 0.01) & (u < f["umax"] + 0.01) & (v > f["vmin"] - 0.01) & (v < f["v0"] + 0.01)
         xs = -(u - f["u0"]) / S                        # > 0 côté devant
         k = np.floor((np.abs(xs) + RAYURE / 2) / RAYURE)
-        dark |= reg & (k % 2 == 1)
+        dark |= reg & (k % 2 == 1) & (xs > 0)          # moitié avant : rayures du devant
+        dos |= reg & (xs <= -0.0575)                   # moitié arrière : rose uni du dos
+        pale |= reg & (np.abs(xs) > SOUS_MANCHE)
         for b0, b1 in BANDES:
             black |= reg & (xs > b0) & (xs < b1)
+    dark &= ~pale
+    dos &= ~pale
     col[dark] = ROSE_FONCE
+    col[dos] = ROSE_DOS
+    col[pale] = ROSE_PALE
     col[black] = NOIR
     print(f"[etape5] rayures {RAYURE * 100:.1f} cm, bande claire centrée ; raccord aux coutures de côté : "
           f"x = ±{HALF_W * 100:.0f} cm tombe dans la même bande sur le devant et le dos "
@@ -160,6 +180,101 @@ def text_img(txt, cap_h_px):
     return im
 
 
+def stroke_distance(a):
+    """Distance (px) de chaque pixel du trait au bord le plus proche (KD-tree mathutils)."""
+    from mathutils.kdtree import KDTree
+    inside = a
+    er = np.asarray(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3))) > 127
+    edge = np.argwhere(inside & ~er)
+    kd = KDTree(len(edge))
+    for k, (y, x) in enumerate(edge):
+        kd.insert((float(x), float(y), 0.0), k)
+    kd.balance()
+    d = np.zeros(a.shape, np.float32)
+    for y, x in np.argwhere(inside):
+        d[y, x] = kd.find((float(x), float(y), 0.0))[2] + 0.5
+    return d
+
+
+def text_inline(txt, cap_h_px, weight, track=0.15, ligne=0.07):
+    """Lettrage style Inter Miami : trait noir fin et condensé, fendu d'une ligne intérieure
+    (couleur du tissu, transparente) exactement au milieu du trait : là où la distance au bord
+    est proche de son maximum local (= demi-épaisseur du trait). ligne : demi-épaisseur de la
+    ligne en fraction de l'épaisseur du trait. track : interlettrage (fraction de la hauteur)."""
+    big = int(max(400, cap_h_px * 1.5))
+    f = ImageFont.truetype(FONT_FIN.format(weight), 1000)
+    x0, y0, x1, y1 = f.getbbox("H")
+    f = ImageFont.truetype(FONT_FIN.format(weight), int(1000 * big / (y1 - y0)))
+    top = f.getbbox("H")[1]
+    glyphs = []
+    for ch in txt:
+        bx0, by0, bx1, by1 = f.getbbox(ch)
+        g = Image.new("L", (bx1 - bx0 + 8, big + 8), 0)
+        ImageDraw.Draw(g).text((4 - bx0, 4 - top), ch, font=f, fill=255)
+        glyphs.append(g)
+    gap = track * big
+    m = Image.new("L", (int(sum(g.width for g in glyphs) + gap * (len(glyphs) - 1)), big + 8), 0)
+    x = 0.0
+    for g in glyphs:
+        m.paste(g, (int(x), 0))
+        x += g.width + gap
+    a = np.asarray(m) > 127
+    d = stroke_distance(a)
+    half = float(d.max())
+    win = 2 * int(half * 1.2) + 1
+    dq = Image.fromarray(np.clip(d / half * 250, 0, 255).astype(np.uint8))
+    loc = np.asarray(dq.filter(ImageFilter.MaxFilter(win)), np.float32) / 250 * half
+    inner = a & (d >= loc - ligne * 2 * half) & (loc > 0.5 * half)
+    inner = np.asarray(Image.fromarray((inner * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.8))) > 127
+    alpha = (a & ~inner).astype(np.uint8) * 255
+    scale = cap_h_px / (big + 8)
+    im = Image.new("RGBA", m.size, NOIR + (0,))
+    im.putalpha(Image.fromarray(alpha))
+    return im.resize((max(1, round(m.width * scale)), max(1, round(m.height * scale))), Image.LANCZOS)
+
+
+def text_plain(txt, cap_h_px, weight=600, track=0.0):
+    """Petit texte noir, lettre par lettre (track : interlettrage en fraction de la hauteur)."""
+    f = ImageFont.truetype(FONT_FIN.format(weight), 1000)
+    x0, y0, x1, y1 = f.getbbox("H")
+    big = 300
+    f = ImageFont.truetype(FONT_FIN.format(weight), int(1000 * big / (y1 - y0)))
+    top = f.getbbox("H")[1]
+    letters = []
+    for ch in txt:
+        bx0, by0, bx1, by1 = f.getbbox(ch)
+        g = Image.new("RGBA", (bx1 - bx0 + 8, big + 8), NOIR + (0,))
+        ImageDraw.Draw(g).text((4 - bx0, 4 - top), ch, font=f, fill=NOIR + (255,))
+        letters.append(g)
+    gap = track * big
+    im = Image.new("RGBA", (int(sum(g.width for g in letters) + gap * (len(letters) - 1)), big + 8), NOIR + (0,))
+    x = 0.0
+    for g in letters:
+        im.alpha_composite(g, (int(x), 0))
+        x += g.width + gap
+    sc = cap_h_px / (big + 8)
+    return im.resize((max(1, round(im.width * sc)), max(1, round(im.height * sc))), Image.LANCZOS)
+
+
+def arched(txt, cap_h_px, radius_px, weight=600, track=1.0):
+    """Texte en arc sous le col, bombé vers le haut comme sur la référence."""
+    letters = [text_plain(c, cap_h_px, weight) for c in txt]
+    gap = cap_h_px * track
+    total = sum(l.width for l in letters) + gap * (len(letters) - 1)
+    size = int(radius_px * 2 + cap_h_px * 4)
+    out = Image.new("RGBA", (size, size), NOIR + (0,))
+    cx = cy = size / 2
+    pos = -total / 2
+    for l in letters:
+        ang = (pos + l.width / 2) / radius_px          # radians, 0 = sommet de l'arc
+        r = l.rotate(-np.degrees(ang), resample=Image.BICUBIC, expand=True)
+        px = cx + radius_px * np.sin(ang)
+        py = cy - radius_px * np.cos(ang)
+        out.alpha_composite(r, (int(px - r.width / 2), int(py - r.height / 2)))
+        pos += l.width + gap
+    return out.crop(out.getbbox())
+
+
 class Layers:
     def __init__(self, col):
         self.col = Image.fromarray(col.astype(np.uint8), "RGB").convert("RGBA")
@@ -168,7 +283,9 @@ class Layers:
         self.log = []
 
     def place(self, im, f, x, y, width=None, height=None, mirror=False, crest=False, label=""):
-        if width is not None:
+        if width is None and height is None:           # déjà à la taille finale (px)
+            w, h = im.width, im.height
+        elif width is not None:
             w = width * PX
             h = w * im.height / im.width
         else:
@@ -374,8 +491,15 @@ def main(src, dst, texdir):
     lay.place(logo("adidas-bandes.png", NOIR), dv, -0.105, -0.16, width=0.07, label="adidas")
     lay.place(logo("royal-caribbean-emblem.png", NOIR), dv, 0.0, -0.31, width=0.15, label="sponsor")
     # dos : écrit en miroir dans la carte UV (lu de derrière)
-    lay.place(text_img("MESSI", 0.07 * PX), ds, 0.0, -0.135, height=0.07, mirror=True, label="MESSI")
-    lay.place(text_img("10", 0.25 * PX), ds, 0.0, -0.315, height=0.25, mirror=True, label="10")
+    # (tailles et positions relevées sur la référence de dos, juste sous le col / centré)
+    lay.place(arched("FREEDOM", 0.004 * PX, 0.05 * PX, track=0.9), ds, 0.0, -0.031, mirror=True,
+              label="FREEDOM (sous le col)")
+    lay.place(text_plain("TO", 0.0035 * PX, track=0.9), ds, 0.0, -0.0385, mirror=True, label="TO")
+    lay.place(text_plain("DREAM", 0.004 * PX, track=0.9), ds, 0.0, -0.045, mirror=True, label="DREAM")
+    lay.place(text_inline("MESSI", 0.06 * PX, 500, track=0.18), ds, 0.0, -0.084, height=0.06,
+              mirror=True, label="MESSI")
+    lay.place(text_inline("10", 0.25 * PX, 500, track=0.06), ds, 0.0, -0.285, height=0.25,
+              mirror=True, label="10")
     for line in lay.log:
         print("[etape5]", line)
 
