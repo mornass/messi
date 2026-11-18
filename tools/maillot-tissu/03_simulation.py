@@ -17,7 +17,12 @@ Réglages v2 (--v2), après la 1re simulation (surface en marches d'escalier) :
   - bending 1.0, shrinking 0, tension / compression 15, steps 15,
     collision distance 0.005, self-collision 0.003 ; le reste inchangé
 
-Usage : python tools/maillot-tissu/03_simulation.py etape2.blend etape3.blend [--v2]
+Réglages v3 (--v3) : comme v2, mais seuls les sommets intérieurs sont décalés
+(ourlets, encolure et bords de couture restent droits), force de couture max
+10 (couture progressive), manches plus raides (bending 3 via le groupe
+« manches », le corps reste à 1.0).
+
+Usage : python tools/maillot-tissu/03_simulation.py etape2.blend etape3.blend [--v2 | --v3]
 """
 import random
 import os
@@ -58,9 +63,12 @@ def check_seams(ob):
 
 V1 = dict(bending=0.3, shrink=0.02, tension=15, steps=10, dist=0.003, self_dist=0.002)
 V2 = dict(bending=1.0, shrink=0.0, tension=15, steps=15, dist=0.005, self_dist=0.003)
+# v3 : bords droits (seul l'intérieur est décalé), couture progressive (force max 10),
+#      manches plus raides (bending 3 via groupe de sommets) ; le reste = v2
+V3 = dict(V2, sewing_max=10.0, sleeve_bending=3.0, interior_only=True)
 
 
-def break_grid(ob, amount=0.002, seed=7):
+def break_grid(ob, amount=0.002, seed=7, interior_only=False):
     """Triangule (Beauty), décale chaque sommet du tissu au hasard dans son plan
     tangent (≤ amount), lisse l'ombrage. Les arêtes de couture (libres) et les UV
     sont conservées (Triangulate garde les UV ; 2 mm de décalage n'y changent rien)."""
@@ -76,6 +84,9 @@ def break_grid(ob, amount=0.002, seed=7):
     for v in bm.verts:
         if not v.link_faces:
             continue
+        # bord de panneau (ourlet, encolure, couture) : arête n'ayant qu'une face → laissé droit
+        if interior_only and any(len(e.link_faces) == 1 for e in v.link_edges):
+            continue
         n = v.normal
         while True:                                  # direction au hasard dans le plan tangent
             r = mathutils.Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1, 1)))
@@ -90,17 +101,18 @@ def break_grid(ob, amount=0.002, seed=7):
     bm.free()
     tris = sum(1 for p in me.polygons if len(p.vertices) == 3)
     print(f"[etape3] grille cassée : {tris} triangles (Beauty), {moved} sommets décalés ≤ {amount * 1000:.0f} mm "
-          f"dans le plan, Shade Smooth ; UV : {len(me.uv_layers)} carte(s)")
+          f"dans le plan{' (intérieur seulement, bords droits)' if interior_only else ''}, Shade Smooth ; "
+          f"UV : {len(me.uv_layers)} carte(s)")
 
 
-def main(src, dst, v2=False):
+def main(src, dst, v2=False, v3=False):
     bpy.ops.wm.open_mainfile(filepath=src)
     ob = bpy.data.objects["Maillot"]
     if not check_seams(ob):
         sys.exit("coutures incomplètes")
-    cfg = V2 if v2 else V1
-    if v2:
-        break_grid(ob)
+    cfg = V3 if v3 else V2 if v2 else V1
+    if v2 or v3:
+        break_grid(ob, interior_only=cfg.get("interior_only", False))
         check_seams(ob)                              # les coutures doivent être intactes
     vis = bpy.data.objects.get("coutures_visu")            # aide visuelle de l'étape 2 : inutile ici
     if vis:
@@ -117,7 +129,16 @@ def main(src, dst, v2=False):
     cs.shear_stiffness = 5
     cs.bending_stiffness = cfg["bending"]
     cs.use_sewing_springs = True
-    cs.sewing_force_max = 0.0
+    cs.sewing_force_max = cfg.get("sewing_max", 0.0)
+    if cfg.get("sleeve_bending"):
+        # manches plus raides : groupe « manches » (poids 1) → bending_stiffness_max
+        vg = ob.vertex_groups.new(name="manches")
+        for tag in ("manche_D", "manche_G"):
+            g = ob.vertex_groups[tag]
+            idx = [v.index for v in ob.data.vertices if any(x.group == g.index for x in v.groups)]
+            vg.add(idx, 1.0, "REPLACE")
+        cs.vertex_group_bending = "manches"
+        cs.bending_stiffness_max = cfg["sleeve_bending"]
     cs.shrink_min = cfg["shrink"]
     cs.quality = cfg["steps"]
     cc = mod.collision_settings
@@ -126,7 +147,8 @@ def main(src, dst, v2=False):
     cc.use_self_collision = True
     cc.self_distance_min = cfg["self_dist"]
     print(f"[etape3] réglages : masse {cs.mass}, tension/compression {cs.tension_stiffness}, shear "
-          f"{cs.shear_stiffness}, bending {cs.bending_stiffness}, sewing force max {cs.sewing_force_max}, "
+          f"{cs.shear_stiffness}, bending {cs.bending_stiffness} (manches {cs.bending_stiffness_max if cs.vertex_group_bending else '='}), "
+          f"sewing force max {cs.sewing_force_max}, "
           f"shrinking {cs.shrink_min}, steps {cs.quality}, collision quality {cc.collision_quality}, "
           f"distance {cc.distance_min}, self-collision {cc.use_self_collision} ({cc.self_distance_min})")
 
@@ -152,4 +174,4 @@ def main(src, dst, v2=False):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], v2="--v2" in sys.argv)
+    main(sys.argv[1], sys.argv[2], v2="--v2" in sys.argv, v3="--v3" in sys.argv)
