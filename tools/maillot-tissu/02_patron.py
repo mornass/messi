@@ -2,7 +2,7 @@
 Étape 2 — Patron du maillot (sans simulation).
 
 1. Quatre panneaux à plat, taille M, quads réguliers ~1 cm :
-   - devant : 54 cm de large, 72 cm depuis le haut de l'épaule, épaules en
+   - devant : 50 cm de large (taille marquée -2 cm de chaque côté), 72 cm depuis le haut de l'épaule, épaules en
      pente, emmanchures creusées, encolure ronde creusée de 8 cm ;
    - dos : mêmes dimensions, encolure creusée de 2 cm ;
    - 2 manches : 20 cm de long, tête de manche en cloche, ouverture 36 cm.
@@ -28,10 +28,12 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 STEP = 0.01                      # ~1 cm
-W, L = 0.54, 0.72                # largeur, longueur (depuis le haut de l'épaule)
+W, L = 0.50, 0.72                # largeur (coupe ajustée), longueur (depuis le haut de l'épaule)
+WAIST_Y, WAIST_IN = -0.40, 0.02  # taille marquée : -2 cm de chaque côté, 40 cm sous l'épaule
+HEM_BAND = 0.02                  # ourlets : 2 premiers cm du bas (maillot et manches)
 NECK_HALF = 0.085                # demi-largeur d'encolure
 SHOULDER = (0.210, -0.045)       # point d'épaule (x, y) : pente ~20°
-UNDERARM = (0.270, -0.240)       # dessous de bras (fin d'emmanchure, 24 cm sous l'épaule)
+UNDERARM = (W / 2, -0.240)       # dessous de bras (fin d'emmanchure, 24 cm sous l'épaule)
 SLEEVE_LEN, SLEEVE_OPEN, CAP_H = 0.20, 0.36, 0.07
 
 
@@ -59,7 +61,16 @@ def body_curves(neck_depth):
     sx, sy = SHOULDER
     ux, uy = UNDERARM
     # côté gauche (x < 0) : bas → dessous de bras, puis emmanchure jusqu'au point d'épaule
-    side = [(-W / 2, -L), (-ux, uy)]
+    # côté : bas → taille (rentrée de 2 cm, courbe douce) → dessous de bras
+    side = []
+    for y in np.linspace(-L, uy, 200):
+        if y <= WAIST_Y:
+            t = (y + L) / (WAIST_Y + L)
+            bump = (1 - math.cos(math.pi * t)) / 2
+        else:
+            t = (y - WAIST_Y) / (uy - WAIST_Y)
+            bump = (1 + math.cos(math.pi * t)) / 2
+        side.append((-W / 2 + WAIST_IN * bump, y))
     arm = bezier((-ux, uy), (-0.195, -0.185), (-sx, sy))          # emmanchure creusée
     shoulder = [(-sx, sy), (-NECK_HALF, 0.0)]                     # épaule en pente
     phi = np.linspace(math.pi, 2 * math.pi, 200)
@@ -239,6 +250,15 @@ def main(src, dst, uv_png):
                 panel_of[v] = tag
     bm.verts.index_update()
     panel_idx = {tag: [v.index for v, t in panel_of.items() if t == tag] for tag in grids}
+    # ourlets : rangs situés dans les 2 premiers cm du bas de chaque panneau (coordonnées à plat)
+    flat = {"devant": front, "dos": back, "manche_D": sleeve, "manche_G": sleeve}
+    hem_idx = []
+    for tag, P2 in flat.items():
+        y_min = P2[..., 1].min()
+        for j, row in enumerate(grids[tag]):
+            for i, v in enumerate(row):
+                if P2[j, i, 1] <= y_min + HEM_BAND + 1e-6:
+                    hem_idx.append(v.index)
 
     me = bpy.data.meshes.new("Maillot")
     bm.to_mesh(me)
@@ -248,6 +268,8 @@ def main(src, dst, uv_png):
     ob["coutures"] = seam_names                               # couture_id k ↔ seam_names[k - 1]
     for tag, idx in panel_idx.items():
         ob.vertex_groups.new(name=tag).add(idx, 1.0, "REPLACE")
+    ob.vertex_groups.new(name="ourlets").add(hem_idx, 1.0, "REPLACE")
+    print(f"[etape2] groupe « ourlets » : {len(hem_idx)} sommets (2 cm du bas du maillot et des manches)")
     mat = bpy.data.materials.new("tissu_patron")
     mat.diffuse_color = (0.96, 0.72, 0.80, 1)
     mat.use_nodes = True

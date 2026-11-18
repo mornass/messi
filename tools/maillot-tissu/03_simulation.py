@@ -22,7 +22,11 @@ Réglages v3 (--v3) : comme v2, mais seuls les sommets intérieurs sont décalé
 10 (couture progressive), manches plus raides (bending 3 via le groupe
 « manches », le corps reste à 1.0).
 
-Usage : python tools/maillot-tissu/03_simulation.py etape2.blend etape3.blend [--v2 | --v3]
+Réglages v4 (--v4) : comme v3, mais force de couture illimitée (la limite 10
+laissait l'emmanchure arrière ouverte sous le bras) et ourlets (2 cm du bas)
+à bending ×5 via le groupe « raideur » (corps 1, manches 3, ourlets 5).
+
+Usage : python tools/maillot-tissu/03_simulation.py etape2.blend etape3.blend [--v2 | --v3 | --v4]
 """
 import random
 import os
@@ -66,6 +70,9 @@ V2 = dict(bending=1.0, shrink=0.0, tension=15, steps=15, dist=0.005, self_dist=0
 # v3 : bords droits (seul l'intérieur est décalé), couture progressive (force max 10),
 #      manches plus raides (bending 3 via groupe de sommets) ; le reste = v2
 V3 = dict(V2, sewing_max=10.0, sleeve_bending=3.0, interior_only=True)
+# v4 : force de couture de nouveau illimitée (la limite 10 laissait l'emmanchure arrière
+#      ouverte sous le bras), ourlets à bending ×5 (groupe « ourlets »), manches à 3
+V4 = dict(V3, sewing_max=0.0, hem_bending=5.0)
 
 
 def break_grid(ob, amount=0.002, seed=7, interior_only=False):
@@ -105,13 +112,13 @@ def break_grid(ob, amount=0.002, seed=7, interior_only=False):
           f"UV : {len(me.uv_layers)} carte(s)")
 
 
-def main(src, dst, v2=False, v3=False):
+def main(src, dst, v2=False, v3=False, v4=False):
     bpy.ops.wm.open_mainfile(filepath=src)
     ob = bpy.data.objects["Maillot"]
     if not check_seams(ob):
         sys.exit("coutures incomplètes")
-    cfg = V3 if v3 else V2 if v2 else V1
-    if v2 or v3:
+    cfg = V4 if v4 else V3 if v3 else V2 if v2 else V1
+    if v2 or v3 or v4:
         break_grid(ob, interior_only=cfg.get("interior_only", False))
         check_seams(ob)                              # les coutures doivent être intactes
     vis = bpy.data.objects.get("coutures_visu")            # aide visuelle de l'étape 2 : inutile ici
@@ -130,7 +137,25 @@ def main(src, dst, v2=False, v3=False):
     cs.bending_stiffness = cfg["bending"]
     cs.use_sewing_springs = True
     cs.sewing_force_max = cfg.get("sewing_max", 0.0)
-    if cfg.get("sleeve_bending"):
+    if cfg.get("hem_bending"):
+        # un seul groupe de raideur (Blender n'en accepte qu'un) :
+        # bending = base + poids × (max - base) ; corps 1.0, manches 3.0, ourlets 5.0 (×5)
+        base, top = cfg["bending"], cfg["hem_bending"]
+        vg = ob.vertex_groups.new(name="raideur")
+        w_sleeve = (cfg["sleeve_bending"] - base) / (top - base)
+        gi = {g.name: g.index for g in ob.vertex_groups}
+        n_hem = 0
+        for v in ob.data.vertices:
+            groups = {x.group for x in v.groups}
+            if gi["ourlets"] in groups:
+                vg.add([v.index], 1.0, "REPLACE")
+                n_hem += 1
+            elif gi["manche_D"] in groups or gi["manche_G"] in groups:
+                vg.add([v.index], w_sleeve, "REPLACE")
+        cs.vertex_group_bending = "raideur"
+        cs.bending_stiffness_max = top
+        print(f"[etape3] raideur : corps {base}, manches {cfg['sleeve_bending']}, ourlets {top} ({n_hem} sommets)")
+    elif cfg.get("sleeve_bending"):
         # manches plus raides : groupe « manches » (poids 1) → bending_stiffness_max
         vg = ob.vertex_groups.new(name="manches")
         for tag in ("manche_D", "manche_G"):
@@ -147,7 +172,7 @@ def main(src, dst, v2=False, v3=False):
     cc.use_self_collision = True
     cc.self_distance_min = cfg["self_dist"]
     print(f"[etape3] réglages : masse {cs.mass}, tension/compression {cs.tension_stiffness}, shear "
-          f"{cs.shear_stiffness}, bending {cs.bending_stiffness} (manches {cs.bending_stiffness_max if cs.vertex_group_bending else '='}), "
+          f"{cs.shear_stiffness}, bending {cs.bending_stiffness} (max {cs.bending_stiffness_max} via « {cs.vertex_group_bending or '-'} »), "
           f"sewing force max {cs.sewing_force_max}, "
           f"shrinking {cs.shrink_min}, steps {cs.quality}, collision quality {cc.collision_quality}, "
           f"distance {cc.distance_min}, self-collision {cc.use_self_collision} ({cc.self_distance_min})")
@@ -174,4 +199,4 @@ def main(src, dst, v2=False, v3=False):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], v2="--v2" in sys.argv, v3="--v3" in sys.argv)
+    main(sys.argv[1], sys.argv[2], v2="--v2" in sys.argv, v3="--v3" in sys.argv, v4="--v4" in sys.argv)

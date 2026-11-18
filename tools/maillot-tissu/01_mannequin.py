@@ -1,7 +1,7 @@
 """
 Étape 1 — Mannequin (add-on MPFB 2) : homme athlétique ~1,70 m en pose A
 (bras ~45° sous l'horizontale), réduit au torse : cou jusqu'à mi-hauteur,
-bras jusqu'à mi-biceps, coupé 5 cm sous l'aine (hanches, haut des cuisses),
+bras jusqu'à mi-biceps (ou au coude avec --coude), coupé 5 cm sous l'aine (hanches, haut des cuisses),
 coupes Bisect + Fill (sans booléen), Voxel Remesh 0.005, lissage léger des
 bords coupés, maillage fermé vérifié, en collision.
 
@@ -80,7 +80,7 @@ def rotate_bone_world(rig, bone, axis, angle):
     bpy.context.view_layer.update()
 
 
-def build(previous=None):
+def build(previous=None, elbow=False):
     import os
     # 2. ancien mannequin : ouvert puis supprimé de la scène
     if previous and os.path.exists(previous):
@@ -201,7 +201,10 @@ def build(previous=None):
         up = group_centroid(body, (f"upperarm01.{side}",), co)
         up2 = group_centroid(body, (f"upperarm02.{side}",), co)
         lo = group_centroid(body, (f"lowerarm01.{side}",), co)
-        mid = mathutils.Vector((up + up2) / 2)           # mi-biceps
+        if elbow:                                     # coude : entre le bas du biceps et le haut de l'avant-bras
+            mid = mathutils.Vector((up2 + lo) / 2)
+        else:
+            mid = mathutils.Vector((up + up2) / 2)       # mi-biceps
         d = mathutils.Vector(lo - up).normalized()
         res = bmesh.ops.bisect_plane(bm, geom=all_geom(), dist=1e-5, plane_co=mid, plane_no=d,
                                      clear_outer=False, clear_inner=False)
@@ -234,7 +237,7 @@ def build(previous=None):
         ring = list(min(cands, key=dist))
         bmesh.ops.split_edges(bm, edges=ring)
         planes.append((tuple(mid), tuple(d)))
-        print(f"[etape1] bras {side} coupé à mi-biceps : point {tuple(round(float(x), 3) for x in mid)}, "
+        print(f"[etape1] bras {side} coupé {'au coude' if elbow else 'à mi-biceps'} : point {tuple(round(float(x), 3) for x in mid)}, "
               f"anneau {len(ring)} arêtes")
     # restes de la main / avant-bras détachés : supprimés par la passe « plus grande pièce »
     # petits morceaux isolés (yeux, dents…) : on ne garde que la plus grande pièce
@@ -349,7 +352,7 @@ def build(previous=None):
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "etape1.blend"
-    b, h, ang, wz, hz = build(previous=out)
+    b, h, ang, wz, hz = build(previous=out, elbow="--coude" in sys.argv)
     d = b.dimensions
     print(f"[mannequin] humain {h:.3f} m, bras {ang} ° sous l'horizontale, coupe du bas z={wz:.3f}, "
           f"cou z={hz:.3f} ; {b.name} : {len(b.data.polygons)} faces, {d.x:.3f} × {d.y:.3f} × {d.z:.3f} m, "
