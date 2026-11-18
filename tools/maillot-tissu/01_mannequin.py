@@ -1,145 +1,233 @@
 """
-Étape 1 — Mannequin de torse homme (taille M), sans tête ni jambes, en collision.
+Étape 1 — Mannequin (add-on MPFB 2) : homme athlétique ~1,70 m, bras à ~45°
+sous l'horizontale, réduit au torse + épaules + haut des bras, en collision.
 
-MPFB2 n'étant pas téléchargeable ici, le torse est construit par coupes
-anatomiques (bassin → cou : largeur, profondeur avant / arrière, pectoraux,
-omoplates), plus deltoïdes et haut des bras en A-pose ; le tout est fusionné
-(remaillage voxel), lissé, allégé, puis mis en collision pour la simulation.
+1. MPFB crée l'humain (homme, musclé, mince, proportions idéales) ;
+2. rig « default » : les bras sont tournés à l'épaule jusqu'à 45° sous
+   l'horizontale (angle mesuré sur le maillage : centre du haut du bras →
+   centre de l'avant-bras), puis la pose est appliquée ;
+3. suppression : géométrie d'aide MPFB, tête (au-dessus de neck01),
+   avant-bras et mains, tout ce qui est sous la taille ;
+4. modificateurs appliqués, modificateur Collision (thickness outer 0,005),
+   objet nommé « Mannequin ».
 
-Mesures (mètres, Z en haut, avant = -Y) : épaules à ~1,45 m, carrure ~46 cm,
-tour de poitrine ~100 cm, taille ~84 cm.
+MPFB doit être installé comme extension Blender (bl_ext.user_default.mpfb) :
+  BLENDER_USER_RESOURCES=<dossier> avec <dossier>/extensions/user_default/mpfb
+  (copie de src/mpfb du dépôt github.com/makehumancommunity/mpfb2).
 
 Usage : python tools/maillot-tissu/01_mannequin.py sortie.blend
 """
 import math
 import sys
 
-import bpy
+import bpy  # en premier : rend addon_utils / mathutils importables
+import addon_utils
 import mathutils
+import numpy as np
+
+ARM_DEG = 45.0                 # angle des bras sous l'horizontale
+HEAD_BONES = ("neck02", "neck03", "head", "jaw", "eye", "oculi", "oris", "levator", "orbicularis",
+              "temporalis", "tongue", "special", "risorius", "mandible", "cheek")
+FOREARM_BONES = ("lowerarm", "wrist", "finger", "metacarpal", "hand")
+LOWER_BONES = ("pelvis", "upperleg", "lowerleg", "foot", "toe", "root")
+# groupes MPFB qui ne sont pas des os (à ignorer pour le « groupe dominant »)
+NON_BONE = {"body", "Left", "Mid", "Right", "HelperGeometry", "JointCubes", "nippleTip", "nipple", "lips",
+            "fingernails", "toenails", "ears", "scalp", "genitals"}
 
 
-# coupes du tronc : hauteur z, demi-largeur, profondeur avant, profondeur arrière,
-# exposant de « superellipse » (2 = ovale, plus grand = plus carré)
-SECTIONS = [
-    (0.95, 0.170, 0.100, 0.115, 2.4),   # bassin
-    (1.02, 0.165, 0.095, 0.105, 2.4),
-    (1.10, 0.145, 0.095, 0.090, 2.3),   # taille
-    (1.18, 0.150, 0.100, 0.095, 2.3),
-    (1.25, 0.160, 0.110, 0.100, 2.4),   # côtes
-    (1.32, 0.175, 0.120, 0.105, 2.6),   # poitrine
-    (1.38, 0.180, 0.115, 0.110, 2.8),   # haut de poitrine
-    (1.43, 0.175, 0.090, 0.100, 2.8),   # sous les épaules
-    (1.47, 0.140, 0.070, 0.080, 2.4),   # trapèzes
-    (1.50, 0.075, 0.055, 0.060, 2.0),   # base du cou
-    (1.54, 0.060, 0.050, 0.055, 2.0),   # cou (coupé)
-]
-N = 72  # points par coupe
-
-
-def ring(z, a, f, b, n):
+def group_centroid(ob, names, co):
+    """Centre des sommets dont le groupe dominant commence par un des noms."""
+    idx = {g.index for g in ob.vertex_groups if g.name.startswith(names)}
+    bones = {g.index for g in ob.vertex_groups if g.name not in NON_BONE}
     pts = []
-    for k in range(N):
-        t = 2 * math.pi * k / N
-        c, s = math.cos(t), math.sin(t)
-        x = a * math.copysign(abs(c) ** (2 / n), c)
-        y = (b if s > 0 else f) * math.copysign(abs(s) ** (2 / n), s)   # avant = -Y
-        # pectoraux : deux bosses douces sur l'avant de la poitrine
-        if s < 0:
-            for px in (-0.07, 0.07):
-                y -= 0.014 * math.exp(-((x - px) / 0.05) ** 2 - ((z - 1.345) / 0.04) ** 2)
-        # omoplates : léger relief dans le dos
-        if s > 0:
-            for px in (-0.08, 0.08):
-                y += 0.008 * math.exp(-((x - px) / 0.05) ** 2 - ((z - 1.38) / 0.06) ** 2)
-        pts.append((x, y, z))
-    return pts
+    for v in ob.data.vertices:
+        gs = [g for g in v.groups if g.group in bones]
+        if not gs:
+            continue
+        g = max(gs, key=lambda x: x.weight)
+        if g.group in idx and g.weight > 0.5:
+            pts.append(co[v.index])
+    return np.mean(pts, axis=0)
 
 
-def trunk():
-    import bmesh
-    bm = bmesh.new()
-    rings = [[bm.verts.new(p) for p in ring(*sec)] for sec in SECTIONS]
-    for r0, r1 in zip(rings, rings[1:]):
-        for k in range(N):
-            bm.faces.new((r0[k], r0[(k + 1) % N], r1[(k + 1) % N], r1[k]))
-    bm.faces.new(list(reversed(rings[0])))   # bas fermé
-    bm.faces.new(rings[-1])                  # haut du cou fermé
-    me = bpy.data.meshes.new("tronc")
-    bm.to_mesh(me)
-    bm.free()
-    ob = bpy.data.objects.new("tronc", me)
-    bpy.context.scene.collection.objects.link(ob)
-    # coupes adoucies verticalement
-    sub = ob.modifiers.new("lisse", "SUBSURF")
-    sub.levels = 2
-    return ob
+def evaluated_coords(ob):
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = ob.evaluated_get(dg)
+    me = ev.to_mesh()
+    co = np.array([ob.matrix_world @ v.co for v in me.vertices])
+    ev.to_mesh_clear()
+    return co
 
 
-def limb(p0, p1, r0, r1):
-    """Tronc de cône entre deux points (bras), extrémités arrondies."""
-    p0, p1 = mathutils.Vector(p0), mathutils.Vector(p1)
-    d = p1 - p0
-    bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=r0, radius2=r1, depth=d.length,
-                                    location=(p0 + p1) / 2,
-                                    rotation=d.to_track_quat("Z", "Y").to_euler())
-    a = bpy.context.active_object
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=r1, location=p1)
-    return [a, bpy.context.active_object]
+def arm_angle(ob, side):
+    co = evaluated_coords(ob)
+    a = group_centroid(ob, (f"upperarm01.{side}", f"upperarm02.{side}"), co)
+    b = group_centroid(ob, (f"lowerarm01.{side}", f"lowerarm02.{side}"), co)
+    d = b - a
+    return math.degrees(math.atan2(-d[2], abs(d[0])))   # sous l'horizontale, en degrés
+
+
+def rotate_bone_world(rig, bone, axis, angle):
+    pb = rig.pose.bones[bone]
+    mw = rig.matrix_world
+    head = mw @ pb.head
+    rot = (mathutils.Matrix.Translation(head) @ mathutils.Matrix.Rotation(angle, 4, axis)
+           @ mathutils.Matrix.Translation(-head))
+    pb.matrix = mw.inverted() @ rot @ mw @ pb.matrix
+    bpy.context.view_layer.update()
 
 
 def build():
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    parts = [trunk()]
-    ang = math.radians(40)                   # A-pose : bras à 40° de la verticale
-    for s in (-1, 1):
-        sh = (s * 0.185, 0.005, 1.405)
-        el = (s * (0.185 + 0.30 * math.sin(ang)), 0.005, 1.405 - 0.30 * math.cos(ang))
-        parts += limb(sh, el, 0.056, 0.046)
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=40, ring_count=20, radius=0.068,
-                                             location=(s * 0.185, 0.005, 1.410))   # deltoïde
-        parts.append(bpy.context.active_object)
+    addon_utils.enable("bl_ext.user_default.mpfb", default_set=True)
+    from bl_ext.user_default.mpfb.services.humanservice import HumanService
 
-    # tout fusionner : modificateurs appliqués, objets joints, remaillage voxel
-    bpy.ops.object.select_all(action="DESELECT")
-    for o in parts:
-        o.select_set(True)
-        bpy.context.view_layer.objects.active = o
-        for mod in list(o.modifiers):
+    macro = {"gender": 1.0, "age": 0.5, "muscle": 0.85, "weight": 0.45, "proportions": 0.9,
+             "height": 0.45, "cupsize": 0.5, "firmness": 0.5,
+             "race": {"asian": 0.33, "caucasian": 0.34, "african": 0.33}}
+    body = HumanService.create_human(mask_helpers=True, detailed_helpers=False, extra_vertex_groups=True,
+                                     feet_on_ground=True, scale=0.1, macro_detail_dict=macro)
+    height = body.dimensions.z
+    for mod in list(body.modifiers):          # masque d'aide MPFB : l'aide est supprimée plus bas
+        if mod.type == "MASK":
+            body.modifiers.remove(mod)
+    rig = HumanService.add_builtin_rig(body, "default")
+
+    # pose : bras à 45° sous l'horizontale (rotation à l'épaule, autour de l'axe avant-arrière)
+    bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.mode_set(mode="POSE")
+    for side, sign in (("L", 1), ("R", -1)):
+        for _ in range(4):                               # ajustement par mesure
+            cur = arm_angle(body, side)
+            delta = math.radians(cur - ARM_DEG)
+            if abs(delta) < math.radians(0.5):
+                break
+            # bras gauche (x > 0) : relever = rotation négative autour de +Y
+            rotate_bone_world(rig, f"upperarm01.{side}", mathutils.Vector((0, 1, 0)), -sign * delta)
+    angles = {s: round(arm_angle(body, s), 1) for s in ("L", "R")}
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    # cible de forme MPFB figées (sinon le modificateur Armature ne s'applique pas)
+    bpy.context.view_layer.objects.active = body
+    body.select_set(True)
+    if body.data.shape_keys:
+        bpy.ops.object.shape_key_add(from_mix=True)
+        mix = body.data.shape_keys.key_blocks[-1]
+        co = np.empty(len(body.data.vertices) * 3)
+        mix.data.foreach_get("co", co)
+        bpy.ops.object.shape_key_remove(all=True)
+        body.data.vertices.foreach_set("co", co)
+        body.data.update()
+    # pose appliquée, masque d'aide retiré (la géométrie d'aide est supprimée plus bas)
+    for mod in list(body.modifiers):
+        if mod.type == "ARMATURE":
             bpy.ops.object.modifier_apply(modifier=mod.name)
-    bpy.context.view_layer.objects.active = parts[0]
-    bpy.ops.object.join()
-    body = bpy.context.view_layer.objects.active
-    body.name = "mannequin"
-    m = body.modifiers.new("remesh", "REMESH")
-    m.mode = "VOXEL"
-    m.voxel_size = 0.005
-    s = body.modifiers.new("lisse", "SMOOTH")
-    s.factor = 0.9
-    s.iterations = 20
-    d = body.modifiers.new("allege", "DECIMATE")
-    d.ratio = 0.2
+        else:
+            body.modifiers.remove(mod)
+    bpy.data.objects.remove(rig)
+
+    # repères pour les coupes
+    co = np.array([v.co for v in body.data.vertices])
+    gi = {g.name: g.index for g in body.vertex_groups}
+
+    def dominant(v):
+        gs = [g for g in v.groups if body.vertex_groups[g.group].name not in NON_BONE]
+        return body.vertex_groups[max(gs, key=lambda x: x.weight).group].name if gs else ""
+
+    helper = {gi.get("HelperGeometry"), gi.get("JointCubes")} - {None}
+    neck01 = [co[v.index][2] for v in body.data.vertices if dominant(v) == "neck01"]
+    head_z = np.percentile(neck01, 60)                 # garde la base du cou
+    waist_z = np.percentile([co[v.index][2] for v in body.data.vertices
+                             if dominant(v).startswith("spine04")], 50)
+
+    # 1) géométrie d'aide MPFB (vêtements d'essai, cubes d'articulation) : supprimée
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    bm.verts.ensure_lookup_table()
+    dom = [dominant(v) for v in body.data.vertices]
+    helpers = [bm.verts[v.index] for v in body.data.vertices
+               if any(g.group in helper and g.weight > 0 for g in v.groups)]
+    bmesh.ops.delete(bm, geom=helpers, context="VERTS")
+
+    # 2) coupes nettes par plans (Bisect) au lieu de sommets supprimés
+    def cut(geom, point, normal):
+        """Coupe le long du plan et supprime le côté vers lequel pointe la normale."""
+        res = bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=point, plane_no=normal,
+                                     clear_outer=True, clear_inner=False)
+        return res
+
+    def all_geom():
+        return bm.verts[:] + bm.edges[:] + bm.faces[:]
+
+    cut(all_geom(), (0, 0, head_z), (0, 0, 1))          # tête : au-dessus de la base du cou
+    cut(all_geom(), (0, 0, waist_z), (0, 0, -1))        # sous la taille
+    # avant-bras : plan perpendiculaire au bras, au coude, appliqué au bras seul
+    lay = bm.verts.layers.deform.verify()
+    names = [g.name for g in body.vertex_groups]
+    for side in ("L", "R"):
+        up = group_centroid(body, (f"upperarm01.{side}",), co)
+        lo = group_centroid(body, (f"lowerarm01.{side}",), co)
+        elbow = (group_centroid(body, (f"upperarm02.{side}",), co) + lo) / 2
+        d = mathutils.Vector(lo - up).normalized()
+        arm_v = set()
+        for v in bm.verts:
+            w = {names[k]: x for k, x in v[lay].items() if names[k] not in NON_BONE}
+            if w and max(w, key=w.get).startswith((f"upperarm", f"lowerarm", "wrist", "finger",
+                                                   "metacarpal")) and max(w, key=w.get).endswith(side):
+                arm_v.add(v)
+        faces = [f for f in bm.faces if all(v in arm_v for v in f.verts)]
+        edges = list({e for f in faces for e in f.edges})
+        cut(list(arm_v) + edges + faces, tuple(elbow), tuple(d))
+    # restes de la main / avant-bras détachés : supprimés par la passe « plus grande pièce »
+    # petits morceaux isolés (yeux, dents…) : on ne garde que la plus grande pièce
+    bm.verts.ensure_lookup_table()
+    seen, parts = set(), []
+    for v in bm.verts:
+        if v.index in seen:
+            continue
+        stack, comp = [v], []
+        seen.add(v.index)
+        while stack:
+            x = stack.pop()
+            comp.append(x)
+            for e in x.link_edges:
+                o = e.other_vert(x)
+                if o.index not in seen:
+                    seen.add(o.index)
+                    stack.append(o)
+        parts.append(comp)
+    parts.sort(key=len, reverse=True)
+    for comp in parts[1:]:
+        bmesh.ops.delete(bm, geom=comp, context="VERTS")
+    bm.to_mesh(body.data)
+    bm.free()
+    body.vertex_groups.clear()
     for mod in list(body.modifiers):
         bpy.ops.object.modifier_apply(modifier=mod.name)
     bpy.ops.object.shade_smooth()
 
-    # collision pour la simulation de tissu
-    body.modifiers.new("collision", "COLLISION")
-    cs = body.collision
-    cs.thickness_outer = 0.004
-    cs.thickness_inner = 0.004
-    cs.cloth_friction = 5.0
-    cs.damping = 0.1
-
+    body.name = "Mannequin"
+    body.data.name = "Mannequin"
+    body.modifiers.new("Collision", "COLLISION")
+    body.collision.thickness_outer = 0.005
+    for m in list(body.data.materials):
+        pass
+    body.data.materials.clear()
     mat = bpy.data.materials.new("argile")
     mat.diffuse_color = (0.62, 0.6, 0.58, 1)
     body.data.materials.append(mat)
-    return body
+    for o in list(bpy.context.scene.objects):
+        if o is not body:
+            bpy.data.objects.remove(o)
+    return body, height, angles, waist_z, head_z
 
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "etape1.blend"
-    b = build()
-    dims = b.dimensions
-    print(f"[mannequin] {len(b.data.polygons)} faces, {dims.x:.3f} × {dims.y:.3f} × {dims.z:.3f} m, collision : "
-          f"{any(m.type == 'COLLISION' for m in b.modifiers)}")
+    b, h, ang, wz, hz = build()
+    d = b.dimensions
+    print(f"[mannequin] humain {h:.3f} m, bras {ang} ° sous l'horizontale, coupe taille z={wz:.3f}, "
+          f"cou z={hz:.3f} ; {b.name} : {len(b.data.polygons)} faces, {d.x:.3f} × {d.y:.3f} × {d.z:.3f} m, "
+          f"modificateurs {[m.type for m in b.modifiers]}, thickness_outer={b.collision.thickness_outer}")
     bpy.ops.wm.save_as_mainfile(filepath=out)
