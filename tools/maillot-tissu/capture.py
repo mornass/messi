@@ -26,7 +26,7 @@ def capture(blend, out, dos=False, plat=False, zoom=None, frame=None):
             sc.frame_set(f)
     sc.render.engine = "CYCLES"
     sc.cycles.device = "CPU"
-    sc.cycles.samples = 24
+    sc.cycles.samples = int(__import__("os").environ.get("SAMPLES", 24))
     sc.cycles.use_denoising = True
     sc.render.resolution_x = 700
     sc.render.resolution_y = 900

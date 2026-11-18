@@ -10,21 +10,28 @@ donc 32,8 px par cm). Tout est placé en coordonnées réelles du patron
     centrée (mesuré sur la référence). Le motif est symétrique en x et les
     coutures de côté sont à x = ±W/2 sur le devant comme sur le dos : les
     rayures se raccordent exactement aux coutures.
-  - 3 bandes noires sur les épaules (devant), prolongées sur le dessus des
-    manches, côté devant.
+  - Manches : mêmes roses et mêmes rayures, dans le sens de la manche,
+    bande claire centrée sur la ligne d'épaule.
+  - 3 bandes noires d'épaule à cheval sur la couture : une part sur le
+    devant, l'autre sur le dos (distance signée à la même couture), puis
+    sur le dessus des manches : aucune coupure à la couture.
   - Devant : écusson Inter Miami 8 cm (cœur, côté gauche du porteur),
     3 bandes adidas 7 cm (côté droit), emblème Royal Caribbean centré.
+    L'écusson est le PNG d'origine, plaqué en décalque dans le shader à sa
+    pleine résolution (256 px/cm), pas rééchantillonné dans la texture.
+  - Col : matériau à part « col_cotes », bord-côte rose soutenu (côtes 1×1).
   - Dos : MESSI (lettres de 7 cm) et 10 (25 cm), noir, Bebas Neue, centrés.
     Le dos est vu de derrière : u croît vers la gauche du spectateur, le
     texte est donc écrit en miroir dans la carte UV.
 
 Images annexes :
-  masque (RGB) : R = impressions, G = écusson brodé, B = hauteur du relief
+  masque (RGB) : R = impressions, G = libre, B = hauteur du relief
   maille (normal map tangente, tuilable) : jersey polyester très fin
 
 Matériau « tissu_patron » : Principled BSDF, rugosité 0,65 (tissu) / 0,4
 (impressions) / 0,5 (fil brodé), sheen 0,4, normal map maille en tuilage
-serré (≈ 7 mm par tuile), relief des impressions par Bump (écusson ×3).
+serré (≈ 7 mm par tuile), relief des impressions par Bump ; écusson brodé
+(fil en points lancés, relief ~3× celui des impressions).
 
 Usage : python tools/maillot-tissu/06_texture.py etape5.blend etape6.blend dossier_textures
 """
@@ -48,8 +55,10 @@ ROSE_FONCE = (240, 160, 186)
 NOIR = (24, 22, 23)
 RAYURE = 0.115                   # largeur d'une rayure (m)
 HALF_W = 0.25                    # demi-largeur du patron (W = 0,50)
-# 3 bandes d'épaule : distances à la couture (m)
-BANDES = [(0.004, 0.012), (0.018, 0.026), (0.032, 0.040)]
+# 3 bandes d'épaule (8 mm, intervalles 6 mm) à cheval sur la couture d'épaule :
+# distance signée à la couture (m), > 0 côté devant, < 0 côté dos
+BANDES = [(-0.018, -0.010), (-0.004, 0.004), (0.010, 0.018)]
+ROSE_COL = (238, 164, 190)       # bord-côte du col : rose soutenu, comme sur la référence
 NECK, SHOULDER = (0.085, 0.0), (0.21, -0.045)
 
 
@@ -96,24 +105,30 @@ def paint_base(fr):
         x = (u - f["u0"]) / S
         k = np.floor((np.abs(x) + RAYURE / 2) / RAYURE)
         dark |= reg & (k % 2 == 1)
-        if t == "devant":                      # 3 bandes sur chaque épaule
-            y = (v - f["v0"]) / S
-            for s in (-1, 1):
-                N = np.array((s * NECK[0], NECK[1]))
-                P = np.array((s * SHOULDER[0], SHOULDER[1]))
-                d = (P - N) / np.linalg.norm(P - N)
-                n = np.array((d[1], -d[0])) * (1 if s > 0 else -1)   # vers le bas du panneau
-                if n[1] > 0:
-                    n = -n
-                a = (x - N[0]) * d[0] + (y - N[1]) * d[1]
-                tt = (x - N[0]) * n[0] + (y - N[1]) * n[1]
-                along = reg & (a > -0.03) & (a < np.linalg.norm(P - N) + 0.04)
-                for b0, b1 in BANDES:
-                    black |= along & (tt > b0) & (tt < b1)
-    for t in ("manche_D", "manche_G"):         # bandes prolongées sur la manche, côté devant (u plus petit)
+        # 3 bandes sur chaque épaule, à cheval sur la couture : la partie t > 0 est sur le devant,
+        # la partie t < 0 sur le dos (même couture, même longueur) → aucune coupure à la couture
+        y = (v - f["v0"]) / S
+        sign = 1 if t == "devant" else -1
+        for s in (-1, 1):
+            N = np.array((s * NECK[0], NECK[1]))
+            P = np.array((s * SHOULDER[0], SHOULDER[1]))
+            d = (P - N) / np.linalg.norm(P - N)
+            n = np.array((-d[1], d[0]))
+            if n[1] > 0:                               # normale vers l'intérieur du panneau
+                n = -n
+            a = (x - N[0]) * d[0] + (y - N[1]) * d[1]
+            tt = sign * ((x - N[0]) * n[0] + (y - N[1]) * n[1])
+            along = reg & (a > -0.03) & (a < np.linalg.norm(P - N) + 0.04)
+            for b0, b1 in BANDES:
+                black |= along & (tt > b0) & (tt < b1)
+    for t in ("manche_D", "manche_G"):
+        # mêmes rayures que le corps, dans le sens de la manche, bande claire centrée sur
+        # la ligne d'épaule ; les 3 bandes continuent dessus, à cheval sur cette ligne
         f = fr[t]
         reg = (u > f["umin"] - 0.01) & (u < f["umax"] + 0.01) & (v > f["vmin"] - 0.01) & (v < f["v0"] + 0.01)
-        xs = -(u - f["u0"]) / S
+        xs = -(u - f["u0"]) / S                        # > 0 côté devant
+        k = np.floor((np.abs(xs) + RAYURE / 2) / RAYURE)
+        dark |= reg & (k % 2 == 1)
         for b0, b1 in BANDES:
             black |= reg & (xs > b0) & (xs < b1)
     col[dark] = ROSE_FONCE
@@ -171,16 +186,6 @@ class Layers:
         self.log.append(f"{label} : {im.width / PX * 100:.1f} × {im.height / PX * 100:.1f} cm")
 
 
-def embroidery(mask):
-    """Relief de broderie : points lancés diagonaux (période ~1 mm) + bord surélevé."""
-    m = np.asarray(mask, np.float32) / 255
-    i, j = np.mgrid[0:RES, 0:RES]
-    stitch = 0.5 + 0.5 * np.sin((i + j) * 2 * np.pi / 3.3)
-    edge = np.clip(m - np.asarray(Image.fromarray((m * 255).astype(np.uint8)).resize(
-        (RES // 4, RES // 4), Image.BILINEAR).resize((RES, RES), Image.BILINEAR), np.float32) / 255, 0, 1)
-    return m * (0.65 + 0.35 * stitch) + edge * 0.5
-
-
 def knit_normal(path, n=512, wales=8, courses=10):
     """Maille jersey : colonnes de boucles en V, tuilable ; normal map tangente (OpenGL, Y+)."""
     y, x = np.mgrid[0:n, 0:n] / n
@@ -198,7 +203,7 @@ def knit_normal(path, n=512, wales=8, courses=10):
     Image.fromarray(((nrm * 0.5 + 0.5) * 255).astype(np.uint8)).save(path)
 
 
-def material(name, tex, interior=False):
+def material(name, tex, interior=False, decal=None):
     mat = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     mat.use_nodes = True
     nt = mat.node_tree
@@ -246,7 +251,39 @@ def material(name, tex, interior=False):
         L.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
         return mat
 
-    L.new(c.outputs["Color"], bsdf.inputs["Base Color"])
+    # écusson : le PNG d'origine (2048 px) en décalque, plaqué tel quel par les UV,
+    # sans passer par la texture 4096 (où il ne ferait que 262 px et se déformerait)
+    du = N.new("ShaderNodeVectorMath")
+    du.operation = "SUBTRACT"
+    du.inputs[1].default_value = (decal["u"], decal["v"], 0)
+    L.new(uvn.outputs["UV"], du.inputs[0])
+    dd = N.new("ShaderNodeVectorMath")
+    dd.operation = "DIVIDE"
+    dd.inputs[1].default_value = (decal["w"], decal["h"], 1)
+    L.new(du.outputs["Vector"], dd.inputs[0])
+    e = img("ecusson", False)
+    e.extension = "CLIP"
+    e.interpolation = "Linear"
+    L.new(dd.outputs["Vector"], e.inputs["Vector"])
+    mixc = N.new("ShaderNodeMix")
+    mixc.data_type = "RGBA"
+    L.new(e.outputs["Alpha"], mixc.inputs["Factor"])
+    L.new(c.outputs["Color"], mixc.inputs["A"])
+    L.new(e.outputs["Color"], mixc.inputs["B"])
+    L.new(mixc.outputs["Result"], bsdf.inputs["Base Color"])
+    # relief de broderie : fil en points lancés diagonaux (~1 mm)
+    wv = N.new("ShaderNodeTexWave")
+    wv.wave_type = "BANDS"
+    wv.bands_direction = "DIAGONAL"
+    wv.inputs["Scale"].default_value = 50
+    L.new(dd.outputs["Vector"], wv.inputs["Vector"])
+    stitch = N.new("ShaderNodeMapRange")
+    stitch.inputs["To Min"].default_value = 0.7
+    L.new(wv.outputs["Fac"], stitch.inputs["Value"])
+    crest_h = N.new("ShaderNodeMath")
+    crest_h.operation = "MULTIPLY"
+    L.new(e.outputs["Alpha"], crest_h.inputs[0])
+    L.new(stitch.outputs["Result"], crest_h.inputs[1])
     m = img("masque", True)
     L.new(uvn.outputs["UV"], m.inputs["Vector"])
     sep = N.new("ShaderNodeSeparateColor")
@@ -259,13 +296,13 @@ def material(name, tex, interior=False):
     r2 = N.new("ShaderNodeMix")
     r2.inputs["B"].default_value = 0.5
     L.new(r1.outputs["Result"], r2.inputs["A"])
-    L.new(sep.outputs["Green"], r2.inputs["Factor"])
+    L.new(e.outputs["Alpha"], r2.inputs["Factor"])
     L.new(r2.outputs["Result"], bsdf.inputs["Roughness"])
     # la maille disparaît sous les impressions (encre / fil lisses)
     cover = N.new("ShaderNodeMath")
     cover.operation = "MAXIMUM"
     L.new(sep.outputs["Red"], cover.inputs[0])
-    L.new(sep.outputs["Green"], cover.inputs[1])
+    L.new(e.outputs["Alpha"], cover.inputs[1])
     st = N.new("ShaderNodeMapRange")
     st.inputs["To Min"].default_value = 0.8
     st.inputs["To Max"].default_value = 0.1
@@ -275,8 +312,45 @@ def material(name, tex, interior=False):
     bump = N.new("ShaderNodeBump")
     bump.inputs["Strength"].default_value = 1.0
     bump.inputs["Distance"].default_value = 0.0008
-    L.new(sep.outputs["Blue"], bump.inputs["Height"])
+    hsum = N.new("ShaderNodeMath")
+    hsum.operation = "ADD"
+    hsum.use_clamp = True
+    L.new(sep.outputs["Blue"], hsum.inputs[0])
+    L.new(crest_h.outputs["Value"], hsum.inputs[1])
+    L.new(hsum.outputs["Value"], bump.inputs["Height"])
     L.new(nm.outputs["Normal"], bump.inputs["Normal"])
+    L.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    return mat
+
+
+def srgb_to_linear(c):
+    c = np.array(c) / 255
+    return tuple(np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)) + (1.0,)
+
+
+def collar_material():
+    """Bord-côte du col : rose soutenu uni, côtes 1×1 perpendiculaires à l'encolure (pas 2 mm)."""
+    mat = bpy.data.materials.get("col_cotes") or bpy.data.materials.new("col_cotes")
+    mat.use_nodes = True
+    N, L = mat.node_tree.nodes, mat.node_tree.links
+    N.clear()
+    out = N.new("ShaderNodeOutputMaterial")
+    bsdf = N.new("ShaderNodeBsdfPrincipled")
+    L.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    bsdf.inputs["Base Color"].default_value = srgb_to_linear(ROSE_COL)
+    bsdf.inputs["Roughness"].default_value = 0.7
+    bsdf.inputs["Sheen Weight"].default_value = 0.4
+    bsdf.inputs["Sheen Roughness"].default_value = 0.5
+    uvn = N.new("ShaderNodeUVMap")
+    uvn.uv_map = "UVMap"
+    wv = N.new("ShaderNodeTexWave")           # u du col = tour d'encolure : côtes à u constant
+    wv.wave_type = "BANDS"
+    wv.bands_direction = "X"
+    wv.inputs["Scale"].default_value = 196    # 1 UV = 1,25 m → période 2 mm
+    L.new(uvn.outputs["UV"], wv.inputs["Vector"])
+    bump = N.new("ShaderNodeBump")
+    bump.inputs["Distance"].default_value = 0.0006
+    L.new(wv.outputs["Fac"], bump.inputs["Height"])
     L.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
     return mat
 
@@ -290,7 +364,13 @@ def main(src, dst, texdir):
     lay = Layers(paint_base(fr))
     dv, ds = fr["devant"], fr["dos"]
     # devant (x > 0 = côté gauche du porteur, à droite sur la vue de face)
-    lay.place(logo("inter-miami.png"), dv, 0.105, -0.16, width=0.08, crest=True, label="écusson")
+    crest_png = os.path.join(LOGOS, "inter-miami.png")
+    cw, ch = Image.open(crest_png).size
+    decal = dict(w=0.08 * S, h=0.08 * S * ch / cw)
+    decal["u"] = dv["u0"] + 0.105 * S - decal["w"] / 2
+    decal["v"] = dv["v0"] - 0.16 * S - decal["h"] / 2
+    print(f"[etape5] écusson : PNG d'origine {cw}×{ch} px en décalque, 8,0 cm "
+          f"({cw / 8:.0f} px/cm, contre {PX / 100:.0f} px/cm dans la texture)")
     lay.place(logo("adidas-bandes.png", NOIR), dv, -0.105, -0.16, width=0.07, label="adidas")
     lay.place(logo("royal-caribbean-emblem.png", NOIR), dv, 0.0, -0.31, width=0.15, label="sponsor")
     # dos : écrit en miroir dans la carte UV (lu de derrière)
@@ -302,9 +382,8 @@ def main(src, dst, texdir):
     col_path = os.path.join(texdir, "miami_couleur.png")
     lay.col.convert("RGB").save(col_path)
     prt = np.asarray(lay.prt, np.float32) / 255
-    crest = np.asarray(lay.crest, np.float32) / 255
-    height = np.clip(prt * 0.35 + embroidery(lay.crest), 0, 1)
-    mask = np.dstack((prt, crest, height))
+    height = np.clip(prt * 0.35, 0, 1)
+    mask = np.dstack((prt, np.zeros_like(prt), height))      # G libre (écusson : décalque)
     mask_path = os.path.join(texdir, "miami_masque.png")
     Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
     knit_path = os.path.join(texdir, "maille_normal.png")
@@ -312,11 +391,14 @@ def main(src, dst, texdir):
     print(f"[etape5] textures : {col_path} ({RES} px), masque, maille")
 
     tex = {k: bpy.data.images.load(p) for k, p in
-           (("couleur", col_path), ("masque", mask_path), ("maille", knit_path))}
+           (("couleur", col_path), ("masque", mask_path), ("maille", knit_path), ("ecusson", crest_png))}
     for im in tex.values():
         im.pack()
-    material("tissu_patron", tex)
+    material("tissu_patron", tex, decal=decal)
     material("tissu_interieur", tex, interior=True)
+    col = bpy.data.objects["Col"]
+    col.data.materials.clear()
+    col.data.materials.append(collar_material())
     bpy.ops.wm.save_as_mainfile(filepath=dst)
     print("[etape5] matériaux tissu_patron / tissu_interieur prêts ->", dst)
 
