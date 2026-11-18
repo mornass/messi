@@ -131,7 +131,7 @@
           const [start, end, front] = (ds.jerseyRange || "1,152,1").split(",").map(Number);
           return { frames: { dir: ds.jerseyFrames, start, end, front, ext: ds.jerseyExt || "webp" } };
         })()
-      : { src: ds.jerseySrc || `assets/maillots/maillot-${id}.png` };
+      : { src: ds.jerseySrc || `assets/maillots/maillot-${id}.png`, model: ds.jerseyModel };
 
     // ---------- états initiaux ----------
     // nom : une lettre = un <path> (vraie longueur) ; ancien <text> en repli
