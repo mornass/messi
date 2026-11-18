@@ -10,8 +10,16 @@ aux manches. Puis Cloth sur l'objet « Maillot » (panneaux déjà joints) :
   Gravité du tissu : 0 de la frame 1 à 40 (couture), 1 à partir de la 50
   150 frames, cache cuit sur disque (bake).
 
-Usage : python tools/maillot-tissu/03_simulation.py etape2.blend etape3.blend
+Réglages v2 (--v2), après la 1re simulation (surface en marches d'escalier) :
+  - panneaux de l'étape 2 (frame 1, avant simulation) triangulés (Beauty),
+    sommets décalés au hasard de 2 mm max DANS le plan du tissu (pas en
+    profondeur) pour casser la grille, Shade Smooth ; coutures et UV gardées
+  - bending 1.0, shrinking 0, tension / compression 15, steps 15,
+    collision distance 0.005, self-collision 0.003 ; le reste inchangé
+
+Usage : python tools/maillot-tissu/03_simulation.py etape2.blend etape3.blend [--v2]
 """
+import random
 import os
 import sys
 import time
@@ -48,11 +56,52 @@ def check_seams(ob):
     return ok
 
 
-def main(src, dst):
+V1 = dict(bending=0.3, shrink=0.02, tension=15, steps=10, dist=0.003, self_dist=0.002)
+V2 = dict(bending=1.0, shrink=0.0, tension=15, steps=15, dist=0.005, self_dist=0.003)
+
+
+def break_grid(ob, amount=0.002, seed=7):
+    """Triangule (Beauty), décale chaque sommet du tissu au hasard dans son plan
+    tangent (≤ amount), lisse l'ombrage. Les arêtes de couture (libres) et les UV
+    sont conservées (Triangulate garde les UV ; 2 mm de décalage n'y changent rien)."""
+    me = ob.data
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    faces = bm.faces[:]
+    bmesh.ops.triangulate(bm, faces=faces, quad_method="BEAUTY", ngon_method="BEAUTY")
+    bm.normal_update()
+    rnd = random.Random(seed)
+    import mathutils
+    moved = 0
+    for v in bm.verts:
+        if not v.link_faces:
+            continue
+        n = v.normal
+        while True:                                  # direction au hasard dans le plan tangent
+            r = mathutils.Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1, 1)))
+            r -= n * r.dot(n)
+            if r.length > 1e-6:
+                break
+        v.co += r.normalized() * amount * rnd.random() ** 0.5
+        moved += 1
+    for f in bm.faces:
+        f.smooth = True                              # Shade Smooth
+    bm.to_mesh(me)
+    bm.free()
+    tris = sum(1 for p in me.polygons if len(p.vertices) == 3)
+    print(f"[etape3] grille cassée : {tris} triangles (Beauty), {moved} sommets décalés ≤ {amount * 1000:.0f} mm "
+          f"dans le plan, Shade Smooth ; UV : {len(me.uv_layers)} carte(s)")
+
+
+def main(src, dst, v2=False):
     bpy.ops.wm.open_mainfile(filepath=src)
     ob = bpy.data.objects["Maillot"]
     if not check_seams(ob):
         sys.exit("coutures incomplètes")
+    cfg = V2 if v2 else V1
+    if v2:
+        break_grid(ob)
+        check_seams(ob)                              # les coutures doivent être intactes
     vis = bpy.data.objects.get("coutures_visu")            # aide visuelle de l'étape 2 : inutile ici
     if vis:
         bpy.data.objects.remove(vis)
@@ -63,19 +112,23 @@ def main(src, dst):
     mod = ob.modifiers.new("Cloth", "CLOTH")
     cs = mod.settings
     cs.mass = 0.15
-    cs.tension_stiffness = 15
-    cs.compression_stiffness = 15
+    cs.tension_stiffness = cfg["tension"]
+    cs.compression_stiffness = cfg["tension"]
     cs.shear_stiffness = 5
-    cs.bending_stiffness = 0.3
+    cs.bending_stiffness = cfg["bending"]
     cs.use_sewing_springs = True
     cs.sewing_force_max = 0.0
-    cs.shrink_min = 0.02
-    cs.quality = 10
+    cs.shrink_min = cfg["shrink"]
+    cs.quality = cfg["steps"]
     cc = mod.collision_settings
     cc.collision_quality = 5
-    cc.distance_min = 0.003
+    cc.distance_min = cfg["dist"]
     cc.use_self_collision = True
-    cc.self_distance_min = 0.002
+    cc.self_distance_min = cfg["self_dist"]
+    print(f"[etape3] réglages : masse {cs.mass}, tension/compression {cs.tension_stiffness}, shear "
+          f"{cs.shear_stiffness}, bending {cs.bending_stiffness}, sewing force max {cs.sewing_force_max}, "
+          f"shrinking {cs.shrink_min}, steps {cs.quality}, collision quality {cc.collision_quality}, "
+          f"distance {cc.distance_min}, self-collision {cc.use_self_collision} ({cc.self_distance_min})")
 
     # gravité du tissu : 0 jusqu'à la frame 40, remonte à 1 à la frame 50
     ew = cs.effector_weights
@@ -99,4 +152,4 @@ def main(src, dst):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], v2="--v2" in sys.argv)
