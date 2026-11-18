@@ -40,6 +40,8 @@ import sys
 
 import bpy
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -57,14 +59,15 @@ NOIR = (24, 22, 23)
 RAYURE = 0.07                    # largeur d'une rayure (m), d'après la photo de face
 HALF_W = 0.25                    # demi-largeur du patron (W = 0,50)
 ROSE_DOS = (240, 195, 206)       # dos uni (mesuré sur la référence de dos)
-ROSE_PALE = (243, 221, 226)      # panneaux latéraux et dessous des manches (référence)
+ROSE_PALE = (248, 230, 236)      # panneaux latéraux et arrière des manches : rose très pâle
 # 3 bandes d'épaule (12 mm, intervalles 8 mm) côté devant, du col vers l'avant de la manche :
 # distance à la couture d'épaule (m), > 0 côté devant ; rien sur le panneau du dos
 BANDES = [(0.015, 0.027), (0.035, 0.047), (0.055, 0.067)]
 OR_PATCH = (226, 196, 128)       # patch Club World Cup : disque doré
 BLEU_PATCH = (38, 86, 168)       # patch « Football Unites the World »
 # panneau latéral clair : largeur depuis la couture de côté, 4,5 cm sous le bras → 0 à 52 cm
-LAT_Y0, LAT_Y1, LAT_W = -0.24, -0.52, 0.045
+LAT_Y0, LAT_Y1, LAT_W = -0.24, -0.50, 0.06
+MANCHE_AVANT = 0.03               # bandes de manche décalées de 3 cm vers l'avant
 SOUS_MANCHE = 0.12               # dessous de manche clair au-delà de 12 cm de la ligne d'épaule
 ROSE_COL = (238, 164, 190)       # bord-côte du col : rose soutenu, comme sur la référence
 NECK, SHOULDER = (0.085, 0.0), (0.21, -0.045)
@@ -145,10 +148,10 @@ def paint_base(fr):
         xs = -(u - f["u0"]) / S                        # > 0 côté devant
         k = np.floor((np.abs(xs) + RAYURE / 2) / RAYURE)
         dark |= reg & (k % 2 == 1) & (xs > 0)          # moitié avant : rayures du devant
-        dos |= reg & (xs <= -RAYURE / 2)               # moitié arrière : rose uni du dos
-        pale |= reg & (np.abs(xs) > SOUS_MANCHE)
-        for b0, b1 in BANDES:
-            black |= reg & (xs > b0) & (xs < b1)
+        pale |= reg & (xs <= -RAYURE / 2)              # arrière de la manche : rose très pâle
+        pale |= reg & (np.abs(xs) > SOUS_MANCHE)       # dessous de manche
+        for b0, b1 in BANDES:                          # décalées vers l'avant : invisibles de dos
+            black |= reg & (xs > b0 + MANCHE_AVANT) & (xs < b1 + MANCHE_AVANT)
     dark &= ~pale
     dos &= ~pale
     col[dark] = ROSE_FONCE
@@ -180,59 +183,6 @@ def text_img(txt, cap_h_px):
     im = Image.new("RGBA", (x1 - x0 + 4, y1 - y0 + 4), NOIR + (0,))
     ImageDraw.Draw(im).text((2 - x0, 2 - y0), txt, font=f, fill=NOIR + (255,))
     return im
-
-
-def stroke_distance(a):
-    """Distance (px) de chaque pixel du trait au bord le plus proche (KD-tree mathutils)."""
-    from mathutils.kdtree import KDTree
-    inside = a
-    er = np.asarray(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3))) > 127
-    edge = np.argwhere(inside & ~er)
-    kd = KDTree(len(edge))
-    for k, (y, x) in enumerate(edge):
-        kd.insert((float(x), float(y), 0.0), k)
-    kd.balance()
-    d = np.zeros(a.shape, np.float32)
-    for y, x in np.argwhere(inside):
-        d[y, x] = kd.find((float(x), float(y), 0.0))[2] + 0.5
-    return d
-
-
-def text_inline(txt, cap_h_px, weight, track=0.15, ligne=0.07):
-    """Lettrage style Inter Miami : trait noir fin et condensé, fendu d'une ligne intérieure
-    (couleur du tissu, transparente) exactement au milieu du trait : là où la distance au bord
-    est proche de son maximum local (= demi-épaisseur du trait). ligne : demi-épaisseur de la
-    ligne en fraction de l'épaisseur du trait. track : interlettrage (fraction de la hauteur)."""
-    big = int(max(400, cap_h_px * 1.5))
-    f = ImageFont.truetype(FONT_FIN.format(weight), 1000)
-    x0, y0, x1, y1 = f.getbbox("H")
-    f = ImageFont.truetype(FONT_FIN.format(weight), int(1000 * big / (y1 - y0)))
-    top = f.getbbox("H")[1]
-    glyphs = []
-    for ch in txt:
-        bx0, by0, bx1, by1 = f.getbbox(ch)
-        g = Image.new("L", (bx1 - bx0 + 8, big + 8), 0)
-        ImageDraw.Draw(g).text((4 - bx0, 4 - top), ch, font=f, fill=255)
-        glyphs.append(g)
-    gap = track * big
-    m = Image.new("L", (int(sum(g.width for g in glyphs) + gap * (len(glyphs) - 1)), big + 8), 0)
-    x = 0.0
-    for g in glyphs:
-        m.paste(g, (int(x), 0))
-        x += g.width + gap
-    a = np.asarray(m) > 127
-    d = stroke_distance(a)
-    half = float(d.max())
-    win = 2 * int(half * 1.2) + 1
-    dq = Image.fromarray(np.clip(d / half * 250, 0, 255).astype(np.uint8))
-    loc = np.asarray(dq.filter(ImageFilter.MaxFilter(win)), np.float32) / 250 * half
-    inner = a & (d >= loc - ligne * 2 * half) & (loc > 0.5 * half)
-    inner = np.asarray(Image.fromarray((inner * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.8))) > 127
-    alpha = (a & ~inner).astype(np.uint8) * 255
-    scale = cap_h_px / (big + 8)
-    im = Image.new("RGBA", m.size, NOIR + (0,))
-    im.putalpha(Image.fromarray(alpha))
-    return im.resize((max(1, round(m.width * scale)), max(1, round(m.height * scale))), Image.LANCZOS)
 
 
 def patch_cwc(diam_px):
@@ -559,15 +509,18 @@ def main(src, dst, texdir):
               label="FREEDOM (sous le col)")
     lay.place(text_plain("TO", 0.0035 * PX, track=0.9), ds, 0.0, -0.0385, mirror=True, label="TO")
     lay.place(text_plain("DREAM", 0.004 * PX, track=0.9), ds, 0.0, -0.045, mirror=True, label="DREAM")
-    lay.place(text_inline("MESSI", 0.06 * PX, 500, track=0.18), ds, 0.0, -0.084, height=0.06,
-              mirror=True, label="MESSI")
-    lay.place(text_inline("10", 0.25 * PX, 500, track=0.06), ds, 0.0, -0.285, height=0.25,
-              mirror=True, label="10")
+    # nom et numéro : vectoriels (lettrage.py, Bézier + buffer shapely), rasterisés antialiasés
+    import lettrage
+    pxcm = PX / 100
+    nom, _, _ = lettrage.name_messi()
+    num, _, _ = lettrage.number_10()
+    lay.place(lettrage.raster(nom, pxcm, NOIR, margin=0), ds, 0.0, -0.095, mirror=True, label="MESSI")
+    lay.place(lettrage.raster(num, pxcm, NOIR, margin=0), ds, 0.0, -0.29, mirror=True, label="10")
     # manche droite du porteur (manche_D), côté extérieur-avant, sous les 3 bandes ;
     # vue de l'extérieur, le devant (u plus petit) est à droite : patchs écrits en miroir
     md = fr["manche_D"]
-    lay.place(patch_cwc(0.075 * PX), md, -0.105, -0.075, width=0.075, mirror=True, label="patch Club World Cup")
-    lay.place(patch_unites(0.065 * PX, 0.022 * PX), md, -0.105, -0.140, width=0.065, mirror=True,
+    lay.place(patch_cwc(0.075 * PX), md, -0.14, -0.075, width=0.075, mirror=True, label="patch Club World Cup")
+    lay.place(patch_unites(0.065 * PX, 0.022 * PX), md, -0.14, -0.140, width=0.065, mirror=True,
               label="patch Football Unites the World")
     for line in lay.log:
         print("[etape5]", line)

@@ -17,6 +17,11 @@ Retouches après le premier rendu texturé (sans relancer la simulation).
    enveloppe, avec un fondu vers 0 sous les aisselles. Seul x change :
    le tissu s'éloigne du corps, aucune collision possible.
 
+3. Micro-froissures : la surface simulée garde des plis de ~1 cm (taille d'un
+   triangle) qui rendaient tremblotant tout trait imprimé (numéro, rayures),
+   même en émission pure. Lissage de Taubin (λ/μ, sans rétrécissement) des
+   sommets intérieurs des panneaux ; coutures, bords et repli d'ourlet fixes.
+
 Usage : python tools/maillot-tissu/08_retouches.py etape5.blend etape5b.blend
 """
 import sys
@@ -113,11 +118,38 @@ def straighten(ob):
     me.update()
 
 
+def taubin(ob, iters=12, lam=0.5, mu=-0.53):
+    """Lissage de Taubin des sommets intérieurs d'un seul panneau (pas de rétrécissement)."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bm.verts.ensure_lookup_table()
+    dl = bm.verts.layers.deform.active
+    panels = {ob.vertex_groups[t].index for t in ("devant", "dos", "manche_D", "manche_G")}
+    npan = [len(panels & set(v[dl].keys())) for v in bm.verts]
+    free = [v for v in bm.verts if npan[v.index] == 1 and not v.is_boundary
+            and all(npan[e.other_vert(v).index] >= 1 for e in v.link_edges)]
+    nbs = {v: [e.other_vert(v) for e in v.link_edges] for v in free}
+    before = np.array([v.co[:] for v in free])
+    for _ in range(iters):
+        for f in (lam, mu):
+            new = {v: v.co + (sum((n.co for n in nbs[v]), v.co * 0) / len(nbs[v]) - v.co) * f for v in free}
+            for v, c in new.items():
+                v.co = c
+    after = np.array([v.co[:] for v in free])
+    bm.to_mesh(ob.data)
+    bm.free()
+    ob.data.update()
+    d = np.linalg.norm(after - before, axis=1) * 1000
+    print(f"[retouches] micro-froissures : Taubin {iters}× sur {len(free)} sommets intérieurs, "
+          f"déplacement moyen {d.mean():.2f} mm, max {d.max():.2f} mm")
+
+
 def main(src, dst):
     bpy.ops.wm.open_mainfile(filepath=src)
     ob = bpy.data.objects["Maillot"]
     fix_artifacts(ob)
     straighten(ob)
+    taubin(ob)
     d = shell_offsets(ob)
     print(f"[retouches] contrôle final coque intérieure : max {d.max() * 1000:.1f} mm")
     bpy.ops.wm.save_as_mainfile(filepath=dst)
