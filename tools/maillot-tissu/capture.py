@@ -5,7 +5,8 @@ matériau argile, fond gris), assemblées en une planche PNG.
 Usage : python tools/maillot-tissu/capture.py scene.blend planche.png [--dos] [--plat]
   --dos  : ajoute une vue de dos
   --plat : éclairage plat (sans ombres portées, lumière d'ambiance seule) pour
-           vérifier la géométrie (trous, encoches)
+           vérifier la géométrie (trous, encoches), sur fond sombre
+  --zoom x,y,z,taille : gros plan centré sur ce point
 """
 import math
 import sys
@@ -16,7 +17,7 @@ import numpy as np
 from PIL import Image
 
 
-def capture(blend, out, dos=False, plat=False):
+def capture(blend, out, dos=False, plat=False, zoom=None):
     bpy.ops.wm.open_mainfile(filepath=blend)
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
@@ -43,6 +44,9 @@ def capture(blend, out, dos=False, plat=False):
     hi = mathutils.Vector([max(p[i] for p in pts) for i in range(3)])
     ctr = (lo + hi) / 2
     size = max(hi - lo)
+    if zoom:                                   # gros plan : centre x,y,z et taille du cadre
+        ctr = mathutils.Vector(zoom[:3])
+        size = zoom[3]
 
     sun = bpy.data.lights.new("soleil", "SUN")
     sun.energy = 3.0
@@ -50,6 +54,7 @@ def capture(blend, out, dos=False, plat=False):
     if plat:
         sun.energy = 0.0
         sun.use_shadow = False
+        sc.render.film_transparent = True     # posé ensuite sur fond sombre : silhouette bien lisible
     so = bpy.data.objects.new("soleil", sun)
     so.rotation_euler = (math.radians(50), 0, math.radians(30))
     sc.collection.objects.link(so)
@@ -73,7 +78,11 @@ def capture(blend, out, dos=False, plat=False):
         sc.render.filepath = path
         bpy.ops.render.render(write_still=True)
         shots.append((name, path))
-    ims = [Image.open(p).convert("RGB") for _, p in shots]
+    ims = []
+    for _, p in shots:
+        im = Image.open(p).convert("RGBA")
+        bg = Image.new("RGBA", im.size, (11, 31, 58, 255) if plat else (0, 0, 0, 0))
+        ims.append(Image.alpha_composite(bg, im).convert("RGB") if plat else im.convert("RGB"))
     w, h = ims[0].size
     sheet = Image.new("RGB", (w * len(ims), h), "white")
     for i, im in enumerate(ims):
@@ -83,4 +92,8 @@ def capture(blend, out, dos=False, plat=False):
 
 
 if __name__ == "__main__":
-    capture(sys.argv[1], sys.argv[2], dos="--dos" in sys.argv, plat="--plat" in sys.argv)
+    zoom = None
+    if "--zoom" in sys.argv:
+        zoom = [float(x) for x in sys.argv[sys.argv.index("--zoom") + 1].split(",")]
+    views = None
+    capture(sys.argv[1], sys.argv[2], dos="--dos" in sys.argv, plat="--plat" in sys.argv, zoom=zoom)
