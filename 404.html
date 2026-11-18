@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0B1F3A" />
+  <title>404 · Tu t'es perdu</title>
+  <meta name="description" content="Page introuvable : dribble jusqu'au but, comme Messi contre Getafe en 2007, pour revenir à l'accueil." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/game404.css" />
+</head>
+<body>
+  <!-- rendu Three.js -->
+  <canvas class="g-canvas" data-g-canvas aria-hidden="true"></canvas>
+  <!-- flou de vitesse (traînées radiales) + grain -->
+  <canvas class="g-speed" data-g-speed aria-hidden="true"></canvas>
+  <div class="g-grain" aria-hidden="true"></div>
+
+  <!-- toujours visible : retour direct à l'accueil -->
+  <a class="g-skip" href="/">Passer <span aria-hidden="true">→</span></a>
+
+  <!-- interface pendant la partie -->
+  <div class="g-hud" data-g-hud hidden>
+    <div class="g-hud-top">
+      <span class="g-brand">404</span>
+      <span class="g-dist"><b data-g-dist>52</b> m du but</span>
+    </div>
+    <div class="g-stamina" aria-hidden="true"><span data-g-stamina></span></div>
+    <p class="g-hint g-hint--desk">ZQSD / flèches : courir · Souris : regarder · Maj : sprint · Clic : tirer</p>
+    <div class="g-cross" aria-hidden="true"></div>
+  </div>
+
+  <!-- commandes tactiles -->
+  <div class="g-touch" data-g-touch hidden>
+    <div class="g-stick" data-g-stick aria-hidden="true"><span data-g-knob></span></div>
+    <button class="g-btn g-btn--sprint" type="button" data-g-sprint>Sprint</button>
+    <button class="g-btn g-btn--shoot" type="button" data-g-shoot>Tirer</button>
+  </div>
+
+  <!-- écrans : intro, pause, perdu, but -->
+  <section class="g-screen is-on" data-g-screen="intro" aria-labelledby="g-title">
+    <p class="g-kicker">Getafe · 18.04.2007 · Coupe du Roi</p>
+    <h1 class="g-title" id="g-title"><span>404</span> Tu t'es perdu.</h1>
+    <p class="g-lead">Fais comme Messi&nbsp;: dribble jusqu'au but pour revenir à l'accueil.</p>
+    <button class="g-play" type="button" data-g-play>Jouer</button>
+    <p class="g-keys g-keys--desk">ZQSD ou flèches · souris · Maj pour sprinter · clic pour tirer</p>
+    <p class="g-keys g-keys--touch">Joystick à gauche · glisse à droite pour tourner · Sprint · Tirer</p>
+  </section>
+
+  <section class="g-screen" data-g-screen="pause" aria-label="Pause">
+    <h2 class="g-title g-title--s">Pause</h2>
+    <button class="g-play" type="button" data-g-resume>Reprendre</button>
+  </section>
+
+  <section class="g-screen" data-g-screen="lost" aria-live="assertive" aria-label="Ballon perdu">
+    <h2 class="g-title g-title--s" data-g-lost-title>Ballon perdu</h2>
+    <p class="g-lead" data-g-lost-text>Un défenseur t'a pris le ballon.</p>
+    <button class="g-play" type="button" data-g-replay>Rejouer</button>
+  </section>
+
+  <section class="g-screen g-screen--goal" data-g-screen="goal" aria-live="assertive" aria-label="But">
+    <h2 class="g-title g-title--goal">BUT&nbsp;!</h2>
+    <p class="g-lead">Retour à l'accueil…</p>
+  </section>
+
+  <noscript><p class="g-noscript">Page introuvable. <a href="/">Retour à l'accueil</a></p></noscript>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="/js/game404.js"></script>
+</body>
+</html>

@@ -10,6 +10,9 @@
    - mode "frames" (PSG : séquence de rotation) : on ne lit que les images
      autour de la face, en balancement gauche ↔ droite (fondu entre deux
      images voisines), sans jamais atteindre le dos.
+   - mode "model" (data-jersey-model="…glb") : vrai maillot 3D (face + dos),
+     tour complet lent, accéléré par la molette ; si le fichier ou
+     GLTFLoader manque, repli sur l'image de face (data-jersey-src).
 
    API (utilisée par js/clubs.js) :
      JerseyPlayer.get(container) → player
@@ -31,6 +34,7 @@ window.JerseyPlayer = (() => {
     wave: 0.007,             // plis de tissu
     sheen: 1,
     frames: { ampDeg: 40, speed: 0.75, frameScale: 1 },
+    model: { speed: 0.45 },  // mode 3D : rad/s au repos (un tour ≈ 14 s)
   };
 
   const isMobile = () => window.innerWidth <= 991;
@@ -220,11 +224,59 @@ window.JerseyPlayer = (() => {
     };
   }
 
+  // maillot 3D (GLB) : centré, hauteur ramenée à 1, matériaux mats (tissu)
+  function loadModelSource(spec, renderer) {
+    if (!THREE.GLTFLoader) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      new THREE.GLTFLoader().load(
+        spec.model,
+        (gltf) => {
+          const obj = gltf.scene;
+          const box = new THREE.Box3().setFromObject(obj);
+          const size = box.getSize(new THREE.Vector3());
+          const center = box.getCenter(new THREE.Vector3());
+          obj.position.sub(center);
+          const holder = new THREE.Group();
+          holder.add(obj);
+          holder.scale.setScalar(1 / size.y);
+          const aniso = renderer.capabilities.getMaxAnisotropy();
+          obj.traverse((o) => {
+            if (!o.isMesh) return;
+            const m = o.material;
+            if (m.map) m.map.anisotropy = aniso;
+            m.metalness = 0;
+            m.roughness = Math.max(m.roughness ?? 1, 0.75);
+          });
+          resolve({
+            mode: "model",
+            object: holder,
+            width: Math.max(size.x, size.z) / size.y,
+            dispose() {
+              obj.traverse((o) => {
+                if (!o.isMesh) return;
+                o.geometry.dispose();
+                const m = o.material;
+                ["map", "normalMap", "roughnessMap", "metalnessMap"].forEach((k) => m[k] && m[k].dispose());
+                m.dispose();
+              });
+            },
+          });
+        },
+        undefined,
+        () => {
+          console.warn("[jersey] modèle 3D introuvable :", spec.model);
+          resolve(null);
+        }
+      );
+    });
+  }
+
   /* ---------------- scène ---------------- */
   class Stage {
     constructor(container) {
       this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, premultipliedAlpha: true });
       this.renderer.setClearColor(0x000000, 0);
+      this.renderer.outputEncoding = THREE.sRGBEncoding;   // couleurs justes du GLB (le shader du plan n'est pas concerné)
       this.canvas = this.renderer.domElement;
       this.canvas.className = "jersey-canvas";
       this.canvas.setAttribute("aria-hidden", "true");
@@ -240,6 +292,15 @@ window.JerseyPlayer = (() => {
       this.root.add(this.swing);
       this.swing.add(this.tilt);
       this.scene.add(this.root);
+      // lumière du maillot 3D : ciel doux + projecteur qui suit la souris + contre-jour
+      this.hemi = new THREE.HemisphereLight(0xffffff, 0x334466, 1.15);
+      this.key = new THREE.DirectionalLight(0xffffff, 1.35);
+      this.key.position.set(1.2, 1.6, 2.4);
+      this.back = new THREE.DirectionalLight(0xbcd0ff, 0.7);
+      this.back.position.set(-1.5, 0.8, -2);
+      this.scene.add(this.hemi, this.key, this.back);
+      this.modelHolder = new THREE.Group();
+      this.tilt.add(this.modelHolder);
 
       this.uniforms = {
         tMap: { value: null },
@@ -336,7 +397,10 @@ window.JerseyPlayer = (() => {
     load(id, spec) {
       if (this.sources.has(id)) return Promise.resolve(this.sources.get(id));
       if (this.pending.has(id)) return this.pending.get(id);
-      const p = (spec.frames ? loadFramesSource(spec.frames, this.renderer) : loadImageSource(spec, this.renderer))
+      const first = spec.model
+        ? loadModelSource(spec, this.renderer).then((m) => m || (spec.src ? loadImageSource(spec, this.renderer) : null))
+        : spec.frames ? loadFramesSource(spec.frames, this.renderer) : loadImageSource(spec, this.renderer);
+      const p = first
         .then((src) => {
           this.pending.delete(id);
           if (src) this.sources.set(id, src);
@@ -359,6 +423,18 @@ window.JerseyPlayer = (() => {
       if (!s) return false;
       this.current = s;
       this.currentId = id;
+      this.modelHolder.clear();
+      if (s.mode === "model") {
+        this.mesh.visible = false;
+        this.modelHolder.add(s.object);
+        this.swing.rotation.y = 0;
+        this.phase = 0;                      // à l'arrivée : la face d'abord, le dos (MESSI 10) au demi-tour
+        this.shadowBase = s.width;
+        this.shadow.position.set(0, -0.53, 0.02);
+        this.shadow.scale.set(s.width * 1.1, 0.42, 1);
+        return true;
+      }
+      this.mesh.visible = true;
       const scale = 1 / s.box.h;
       const planeW = s.aspect * scale;
       const planeH = scale;
@@ -404,7 +480,15 @@ window.JerseyPlayer = (() => {
       this.tilt.rotation.x = m.ey * CFG.tilt.pitch;
       this.shadowU.uOpacity.value = 0.55 * (1 - bob * 9);
 
-      if (s.mode === "image") {
+      if (s.mode === "model") {
+        // tour complet : lent au repos, accéléré par la molette, comme l'original
+        this.phase += dt * CFG.model.speed * boost * this.direction;
+        this.modelHolder.rotation.y = this.phase;
+        this.swing.rotation.y = m.ex * CFG.tilt.yaw;
+        this.key.position.set(1.2 + m.ex * 1.2, 1.6 - m.ey * 0.8, 2.4);
+        const c = Math.abs(Math.cos(this.phase));
+        this.shadow.scale.x = this.shadowBase * (0.75 + 0.35 * c) * (1 + bob * 4);
+      } else if (s.mode === "image") {
         this.phase += dt * CFG.swing.speed * boost * this.direction;
         const swing = Math.sin(this.phase) * CFG.swing.amp;
         this.swing.rotation.y = swing + m.ex * CFG.tilt.yaw;
